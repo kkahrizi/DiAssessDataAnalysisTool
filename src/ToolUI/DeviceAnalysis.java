@@ -12,11 +12,13 @@ import javax.swing.*;
  */
 public class DeviceAnalysis extends javax.swing.JFrame {
 
+    File chosenFolder;
     /**
      * Creates new form ThermoAnalysis
      */
     public DeviceAnalysis() {
         initComponents();
+        chosenFolder = null;
     }
 
     /**
@@ -54,6 +56,11 @@ public class DeviceAnalysis extends javax.swing.JFrame {
         });
 
         fileLoader.setText("Load");
+        fileLoader.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fileLoaderActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -103,6 +110,13 @@ public class DeviceAnalysis extends javax.swing.JFrame {
     private void fileNameFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileNameFieldActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_fileNameFieldActionPerformed
+
+    private void fileLoaderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileLoaderActionPerformed
+        //Check if a folder was chosen
+        if (chosenFolder == null){
+                JOptionPane.showMessageDialog(this,"Please select a folder to load");
+        }
+                }//GEN-LAST:event_fileLoaderActionPerformed
 
     /**
      * @param args the command line arguments

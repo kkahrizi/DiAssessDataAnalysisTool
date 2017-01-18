@@ -4,21 +4,27 @@
  * and open the template in the editor.
  */
 package ToolUI;
-import java.io.File;
+import java.io.*;
 import javax.swing.*;
+import java.awt.event.*;
 /**
  *
  * @author kamin
  */
 public class TubeAnalysis extends javax.swing.JFrame {
-
+    private File chosenFolder;
+   
     /**
      * Creates new form ThermoAnalysis
      */
     public TubeAnalysis() {
         initComponents();
+        chosenFolder = null;
     }
 
+   
+    
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -54,6 +60,11 @@ public class TubeAnalysis extends javax.swing.JFrame {
         });
 
         fileLoader.setText("Load");
+        fileLoader.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fileLoaderActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -95,8 +106,8 @@ public class TubeAnalysis extends javax.swing.JFrame {
 
             int returnVal = chooser.showOpenDialog(this);
             if (returnVal == JFileChooser.APPROVE_OPTION){
-                File file = chooser.getSelectedFile();
-                fileNameField.setText(file.getAbsolutePath());
+                chosenFolder = chooser.getSelectedFile();
+                fileNameField.setText(chosenFolder.getAbsolutePath());
             }
     }//GEN-LAST:event_fileSelectorActionPerformed
 
@@ -104,6 +115,24 @@ public class TubeAnalysis extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_fileNameFieldActionPerformed
 
+    private void fileLoaderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileLoaderActionPerformed
+            //First, check if the filename field is empty
+            if (chosenFolder == null){
+                JOptionPane.showMessageDialog(this,"Please select a folder to load");
+            }
+            else {
+                loadingFrame loadData = new loadingFrame(chosenFolder);
+                loadData.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+                loadData.setVisible(true);
+                
+                       
+               
+            }
+                    
+          
+    }//GEN-LAST:event_fileLoaderActionPerformed
+
+  
     /**
      * @param args the command line arguments
      */
