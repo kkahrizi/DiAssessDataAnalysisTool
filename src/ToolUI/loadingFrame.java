@@ -6,6 +6,9 @@
 package ToolUI;
 import java.io.*;
 import javax.swing.*;
+import javax.imageio.*;
+import java.awt.event.*;
+import java.util.ArrayList;
 /**
  *
  * @author kamin
@@ -13,6 +16,11 @@ import javax.swing.*;
 public class loadingFrame extends javax.swing.JFrame implements FileFilter {
     public String currentText;
     public File passedFolder;
+    public int organize;
+    public final int EQUAL_NUMBER = 0;
+    public final int STITCH_TOGETHER = 1;
+    public final int ORGANIZE = 2;
+    public ArrayList[] allImages;
     /**
      * Creates new form loadingFrame
      */
@@ -24,11 +32,22 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         boolean success = loadImages(folder);
         if(success){
             waitContinueButton.setText("Continue!");
+            waitContinueButton.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent e){
+                    analyzeImages();
+                }
+            });
         } else {
             waitContinueButton.setText("Select another folder.");
+            waitContinueButton.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent e){
+                    dispose();
+                }
+            });
         }
         
     }
+    
     
     //Loads images in folder and sends them for processing
     //returns true if successful, false if there is an error
@@ -44,6 +63,8 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         int index = 1;
         int numFiles = 0;
         int[] numFilesDict = new int[allSubFolders.length];
+        allImages = new ArrayList[allSubFolders.length];
+        
         for (File subFolder : allSubFolders){
             addText(Integer.toString(index) + ". Looking in " + subFolder.getAbsolutePath());
             File[] allFiles = subFolder.listFiles();
@@ -56,18 +77,46 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
             
             int subindex = 1;
             for (File file : allFiles){
-                addText(Integer.toString(index) + "." + Integer.toString(subindex) + ". " + file.getName());
+                
+                if(allImages[index-1] == null){
+                    allImages[index-1] = new ArrayList();
+                }
+                try{
+                    allImages[index-1].add(new imagePair(file.getName(),ImageIO.read(file)));
+                } catch (IOException e) {
+                    addText("An error occurred while trying to open image " + file.getName());
+                }
+                addText(Integer.toString(index) + "." + Integer.toString(subindex) + ". " + file.getName() + " loaded successfully.");
                 subindex++;
             }
             
             
             index++;
         } 
-        boolean organize = verifyNumFiles(numFilesDict);
+        organize = verifyNumFiles(numFilesDict);
+        if (organize == EQUAL_NUMBER)
+            addText("Each folder has an equal number of images");
+        else if (organize == ORGANIZE)
+            addText("When joining images, we will create padding for missing images");
+        else if (organize == STITCH_TOGETHER)
+            addText("When joining images, we will simply skip over missing images");
         return true;
     }
-            
-    public boolean verifyNumFiles(int[] numbers){
+    
+    //After all file number checks pass and user input is considered, analyze images reads the images,
+    //Finds the number of tubes in each image. If two images in the same rack have different number of tubes, throws an error
+    //Returns true if successful, false if failed
+    public boolean analyzeImages(){
+        addText("Ok, starting to analyze images.");
+        return true;
+    }
+    
+    
+    
+    
+    
+    
+    public int verifyNumFiles(int[] numbers){
         int firstNumber = numbers[0];
         for (int num : numbers){
             if (num != firstNumber){
@@ -75,14 +124,14 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                 Object selectedValue = JOptionPane.showInputDialog(this, "All of your subfolders do not have the same number of images. \nWe can either organize images by their name and include padding images, or we can just stitch them together in order. What would you like to do?"
                         ,"Input",JOptionPane.INFORMATION_MESSAGE,null,myOptions,myOptions[0]);
                 if (selectedValue.equals(myOptions[0])){
-                    return true;
+                    return ORGANIZE;
                 }
                 else {
-                    return false;
+                    return STITCH_TOGETHER;
                 }
             }
         }
-        return true;
+        return EQUAL_NUMBER;
     }
     
     public boolean accept(File fileName){
