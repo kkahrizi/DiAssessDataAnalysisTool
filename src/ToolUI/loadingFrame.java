@@ -9,6 +9,13 @@ import javax.swing.*;
 import javax.imageio.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.ListIterator;
+import java.awt.image.BufferedImage;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.GeneralPath;
+import java.util.stream.*;
 /**
  *
  * @author kamin
@@ -20,7 +27,7 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
     public final int EQUAL_NUMBER = 0;
     public final int STITCH_TOGETHER = 1;
     public final int ORGANIZE = 2;
-    public ArrayList[] allImages;
+    public ArrayList<imagePair>[] allImages;
     /**
      * Creates new form loadingFrame
      */
@@ -108,10 +115,73 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
     //Returns true if successful, false if failed
     public boolean analyzeImages(){
         addText("Ok, starting to analyze images.");
+        
+        //First create an arraylist<String> of all unique image times, and also
+        //create an arraylist of all tubelocations
+        ArrayList<String> uniqueTimes = new ArrayList();
+        for(int i = 0; i < allImages.length; i++){
+            ArrayList thisRacksImages = allImages[i];
+            ListIterator<imagePair> imageIterator = thisRacksImages.listIterator();
+            while (imageIterator.hasNext()){
+                imagePair thisImage = imageIterator.next();
+                BufferedImage image = thisImage.getImage();
+                int width = image.getWidth();
+                int height = image.getHeight();
+                int[][] blueChannel = new int[width][height];
+                for (int x = 0; x < width; x++){
+                    for (int y = 0; y < height; y++){
+                        blueChannel[x][y] = new Color(image.getRGB(x, y)).getBlue();
+                    }
+                }
+                int[] tubeLocationsX = analyzeImageX(blueChannel);
+                int tubeLocationY = analyzeImageY(blueChannel);
+                String newTime = thisImage.getTime();
+                ListIterator<String> timeIterator = uniqueTimes.listIterator();
+                boolean isNew = true;
+                while (timeIterator.hasNext()){
+                    String storedTime = timeIterator.next();
+                    if (storedTime.equals(newTime)){
+                        isNew = false;
+                    }
+                }
+                if (isNew){
+                    uniqueTimes.add(newTime);
+                }
+            }
+        }
         return true;
     }
     
+    /**
+     *
+     * @param blueChannel
+     * @return
+     */
+    public int[] analyzeImageX(int[][] blueChannel){
+        int[] collapsedX = new int[blueChannel.length];
+        for (int x = 0; x < collapsedX.length; x++){
+            collapsedX[x] = IntStream.of(blueChannel[x]).sum();
+        }
+        int[] xAxis = new int[collapsedX.length];
+        int[] yAxis = new int[collapsedX.length];
+        for (int x = 0; x < xAxis.length; x++){
+            xAxis[x] = x;
+            yAxis[x] = collapsedX[x];
+        }
+        
+        plotGraph thisGraph = new plotGraph();
+        thisGraph.plotArrays(xAxis,yAxis);
+        thisGraph.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        thisGraph.setVisible(true);
+        return collapsedX;
+        
+        
+    }
     
+    
+    public int analyzeImageY(int[][] blueChannel){
+        return 0;
+    }
     
     
     
