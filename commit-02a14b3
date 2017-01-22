@@ -1,0 +1,27 @@
+From 02a14b373e261000e73e7748807f3c678d357274 Mon Sep 17 00:00:00 2001
+From: Kamin Kahrizi <Kamin Kahrizi>
+Date: Sun, 22 Jan 2017 13:47:43 -0800
+Subject: Began image analysis of tube data
+
+
+diff --git a/nbproject/private/private.xml b/nbproject/private/private.xml
+index 6807a2b..331b108 100644
+--- a/nbproject/private/private.xml
++++ b/nbproject/private/private.xml
+@@ -2,6 +2,15 @@
+ <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
+     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+-        <group/>
++        <group>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/ThermoAnalysis.java</file>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/DiAssessDataAnalysisToolUI.java</file>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/imagePair.java</file>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/plotGraph.java</file>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/loadingFrame.java</file>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/DeviceAnalysis.java</file>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/PlateReaderAnalysis.java</file>
++            <file>file:/C:/Users/kamin/codeProjects/DiAssessDataAnalysisTool/src/ToolUI/TubeAnalysis.java</file>
++        </group>
+     </open-files>
+ </project-private>
