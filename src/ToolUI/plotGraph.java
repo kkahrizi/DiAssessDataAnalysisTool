@@ -5,10 +5,9 @@
  */
 package ToolUI;
 
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.geom.GeneralPath;
-
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import org.math.plot.*;
 /**
  *
  * @author kamin
@@ -22,11 +21,9 @@ public class plotGraph extends javax.swing.JFrame {
         initComponents();
     }
 
-    public void plotArrays(int[] xAxis, int[] yAxis){
-        Graphics g = getGraphics();
-        Graphics2D g2 = (Graphics2D) g;
-        GeneralPath polyline = new GeneralPath(GeneralPath. WIND_EVEN_ODD,xAxis.length);
-        polyline.moveTo(xAxis,yAxis);
+    public void plotArrays(double[] xAxis, double[] yAxis){
+        
+        
     }
     
     

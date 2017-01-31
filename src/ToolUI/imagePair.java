@@ -7,20 +7,27 @@ package ToolUI;
 import java.awt.image.BufferedImage;
 
 /**
- *
+ *@param time is the time
+ *@param image is the buffered image
  * @author kamin
  */
 public class imagePair {
+    public int rackNumber;
     private String time;
     private BufferedImage image;
     
-    public imagePair(String when, BufferedImage what){
+    public imagePair(int num, String when, BufferedImage what){
+        rackNumber = num;
         if(when.contains(".jpg")){
             time = when.substring(0,4);
         } else {
             time = when;
         }
         image = what;
+    }
+    
+    public int getRackNumber(){
+        return rackNumber;
     }
     
     public String getTime(){

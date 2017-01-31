@@ -16,6 +16,8 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.GeneralPath;
 import java.util.stream.*;
+import javax.swing.JOptionPane;
+import org.math.plot.*;
 /**
  *
  * @author kamin
@@ -74,6 +76,11 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         
         for (File subFolder : allSubFolders){
             addText(Integer.toString(index) + ". Looking in " + subFolder.getAbsolutePath());
+            String[] splitStr = subFolder.getName().split("\\s");
+            System.out.println(subFolder.getName());
+            System.out.println(splitStr[splitStr.length-1]);
+            System.out.println(Integer.parseInt(splitStr[splitStr.length-1]));
+            int rackNumber = Integer.parseInt(splitStr[splitStr.length -1]);
             File[] allFiles = subFolder.listFiles();
             addText("Found " + allFiles.length + ": ");
             if (allFiles.length == 0){ 
@@ -89,7 +96,7 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                     allImages[index-1] = new ArrayList();
                 }
                 try{
-                    allImages[index-1].add(new imagePair(file.getName(),ImageIO.read(file)));
+                    allImages[index-1].add(new imagePair(rackNumber, file.getName(),ImageIO.read(file)));
                 } catch (IOException e) {
                     addText("An error occurred while trying to open image " + file.getName());
                 }
@@ -133,7 +140,8 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                         blueChannel[x][y] = new Color(image.getRGB(x, y)).getBlue();
                     }
                 }
-                int[] tubeLocationsX = analyzeImageX(blueChannel);
+                int[] tubeLocationsX = analyzeImageX(blueChannel, "Rack: " + thisImage.getRackNumber() + 
+                        " Time:  " + thisImage.getTime());
                 int tubeLocationY = analyzeImageY(blueChannel);
                 String newTime = thisImage.getTime();
                 ListIterator<String> timeIterator = uniqueTimes.listIterator();
@@ -157,27 +165,48 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
      * @param blueChannel
      * @return
      */
-    public int[] analyzeImageX(int[][] blueChannel){
+    public int[] analyzeImageX(int[][] blueChannel, String source){
         int[] collapsedX = new int[blueChannel.length];
         for (int x = 0; x < collapsedX.length; x++){
             collapsedX[x] = IntStream.of(blueChannel[x]).sum();
         }
-        int[] xAxis = new int[collapsedX.length];
-        int[] yAxis = new int[collapsedX.length];
+        double[] xAxis = new double[collapsedX.length];
+        double[] yAxis = new double[collapsedX.length];
         for (int x = 0; x < xAxis.length; x++){
             xAxis[x] = x;
             yAxis[x] = collapsedX[x];
         }
         
-        plotGraph thisGraph = new plotGraph();
-        thisGraph.plotArrays(xAxis,yAxis);
-        thisGraph.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        thisGraph.setVisible(true);
+        double[] filtered = hanningWindow(yAxis);
+        
+        plotGraph(source,xAxis,yAxis);
+        plotGraph(source + " Hanning ", xAxis, filtered);
         return collapsedX;
         
         
     }
     
+    public double[] hanningWindow(double[] recordedData) {
+        double[] filtered = recordedData.clone();
+        // iterate until the last line of the data buffer
+        for (int n = 1; n < recordedData.length; n++) {
+        // reduce unnecessarily performed frequency part of each and every frequency
+        filtered[n] *= 0.5 * (1 - Math.cos((2 * Math.PI * n)
+                / (filtered.length - 1)));
+        }
+        // return modified buffer to the FFT function
+        return filtered;
+    }
+    
+    public void plotGraph(String source, double[] xAxis, double[] yAxis){
+        JFrame frame = new JFrame(source);
+        Plot2DPanel panel = new Plot2DPanel();
+        panel.addLinePlot("Source",xAxis, yAxis);
+        frame.setContentPane(panel);
+        frame.setSize(500,600);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setVisible(true);
+    }
     
     public int analyzeImageY(int[][] blueChannel){
         return 0;
@@ -187,6 +216,8 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
     
     
     public int verifyNumFiles(int[] numbers){
+        if(numbers == null)
+            JOptionPane.showMessageDialog(this, "Numbers is null in verifyNumFile");
         int firstNumber = numbers[0];
         for (int num : numbers){
             if (num != firstNumber){
