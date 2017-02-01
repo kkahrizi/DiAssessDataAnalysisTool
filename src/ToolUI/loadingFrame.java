@@ -12,12 +12,13 @@ import java.util.ArrayList;
 import java.util.ListIterator;
 import java.awt.image.BufferedImage;
 import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.geom.GeneralPath;
+import java.awt.FlowLayout;
 import java.util.stream.*;
 import javax.swing.JOptionPane;
 import org.math.plot.*;
+import java.util.Arrays;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.util.MathArrays;
 /**
  *
  * @author kamin
@@ -64,6 +65,7 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
     {
         addText("Okay, looking for all folders inside: " + folder.getAbsolutePath());
         File[] allSubFolders = folder.listFiles(this);
+        
         addText("Found " + allSubFolders.length + " subfolders: ");
         if (allSubFolders.length == 0){
             JOptionPane.showMessageDialog(this,"Error, the folder you selected is empty.");
@@ -82,6 +84,18 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
             System.out.println(Integer.parseInt(splitStr[splitStr.length-1]));
             int rackNumber = Integer.parseInt(splitStr[splitStr.length -1]);
             File[] allFiles = subFolder.listFiles();
+            ArrayList<File> filteredFiles = new ArrayList();
+            for(int i = 0; i < allFiles.length; i++){
+                if (!allFiles[i].getAbsolutePath().contains("Thumbs")){
+                    filteredFiles.add(allFiles[i]);
+                }                    
+            }
+            
+            File[] filesFiltered = new File[filteredFiles.size()];
+            for (int i = 0; i < filteredFiles.size(); i++){
+                filesFiltered[i] = filteredFiles.get(i);
+            }
+            allFiles = filesFiltered;
             addText("Found " + allFiles.length + ": ");
             if (allFiles.length == 0){ 
                 JOptionPane.showMessageDialog(this,"One of the subfolders of the folder you selected is empty. Either delete that subfolder, or pick another folder)");
@@ -132,6 +146,7 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
             while (imageIterator.hasNext()){
                 imagePair thisImage = imageIterator.next();
                 BufferedImage image = thisImage.getImage();
+               
                 int width = image.getWidth();
                 int height = image.getHeight();
                 int[][] blueChannel = new int[width][height];
@@ -142,6 +157,22 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                 }
                 int[] tubeLocationsX = analyzeImageX(blueChannel, "Rack: " + thisImage.getRackNumber() + 
                         " Time:  " + thisImage.getTime());
+                
+                JFrame frame = new JFrame();
+                JFrame frame2 = new JFrame("original");
+                frame2.getContentPane().setLayout(new FlowLayout());
+                
+                frame.getContentPane().setLayout(new FlowLayout());
+                for (int x = 0; x < tubeLocationsX.length; x++){
+                    int xcor = tubeLocationsX[x]-77;
+                    BufferedImage crop = image.getSubimage(xcor-60,240,120,140);
+                    frame2.getContentPane().add(new JLabel(new ImageIcon(crop)));
+
+                    
+                }
+                frame2.pack();
+                frame2.setVisible(true);
+                
                 int tubeLocationY = analyzeImageY(blueChannel);
                 String newTime = thisImage.getTime();
                 ListIterator<String> timeIterator = uniqueTimes.listIterator();
@@ -177,12 +208,95 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
             yAxis[x] = collapsedX[x];
         }
         
-        double[] filtered = hanningWindow(yAxis);
+        double[] filtered = hanningWindow(yAxis,51);
+        int hardMin = 175;
+        int hardMax = 2500;
+        int[] minima = findLocalMinima(filtered, 100);
         
-        plotGraph(source,xAxis,yAxis);
-        plotGraph(source + " Hanning ", xAxis, filtered);
-        return collapsedX;
+        ArrayList<Integer> filteredMinima = new ArrayList();
+        for (int i = 0; i < minima.length; i++){
+            if(minima[i] > hardMin && minima[i] < hardMax){
+                filteredMinima.add(minima[i]);
+            }
+        }
         
+        int numMinima = filteredMinima.size();
+        int[] finalMinima = new int[numMinima];
+        double[] minimaY = new double[numMinima];
+        double[] minimaX = new double[numMinima];
+        for (int i = 0; i < numMinima; i++){
+            minimaX[i] = (double) filteredMinima.get(i);
+            minimaY[i] = filtered[filteredMinima.get(i)];
+            finalMinima[i] = filteredMinima.get(i);
+        }
+        
+        //Plot2DPanel plot = plotGraph(source,xAxis,yAxis);
+        Plot2DPanel plot = plotGraph(source + " Hanning ", xAxis, filtered);
+        plot.addStaircasePlot("Location" , minimaX,minimaY);
+        return finalMinima;
+        
+        
+    }
+    
+    //Returns a double array of a hann window of the parametrized length
+    public double[] vonHannWindow(int length){
+        double[] window = new double[length];
+        for (int i = 0; i < length; i++){
+            window[i] = (0.5 - 0.5 * Math.cos(2*Math.PI*i/(length-1)))/length;
+        }
+        return window;
+    }
+    
+    //Finds the local minima in the array and returns their locations as array indexes
+    //Each minima is at least smaller than at <width> entries before and after (edge cases avoided by starting at least 2 width away from start and end)
+    public int[] findLocalMinima(double[] signal, int width){
+        ArrayList<Integer> min = new ArrayList();
+        boolean isMin = true;
+        for (int i = width + 1; i < signal.length - (width + 1); i++){
+            isMin = true;
+            for (int j = i - width; j < i + width; j++){
+                if (signal[i] > signal[j]){
+                    isMin = false;
+                    break;
+                }
+            }
+            if(isMin){
+                min.add(i);
+            }
+        }    
+        int length = min.size();
+        int[] minima = new int[length];
+        for (int i = 0; i < length; i++){
+            minima[i] = min.get(i);
+            
+        }
+        return minima;
+    }
+    
+    //Returns an array with the edges of the signal array inverted and concatenated at the ends:
+    //Returns an array as follows:
+    //0.....length-1: signal[length-1] signal[length-2] ... signal [0]
+    //length....signal.length: signal[0] signal[1] ... signal[signal.length-1]
+    //signal.length+1...signal.length+length-1: signal[signal.length-1] signal[signal.length-2] ... signal[signal.length-length]
+    public double[] invertEdges(double[] signal, int length){
+        if (length > signal.length){
+            System.exit(0);
+        }
+        double start[] = Arrays.copyOfRange(signal,0,length);
+        ArrayUtils.reverse(start);
+        double end[] = Arrays.copyOfRange(signal,signal.length-length,signal.length);
+        ArrayUtils.reverse(end);
+        double[] newSignal = ArrayUtils.addAll(start,signal);
+        newSignal = ArrayUtils.addAll(newSignal,end);
+        return newSignal;
+    }
+    
+    
+    public double[] hanningWindow(double[] recordedData, int length){
+        double[] filtered = recordedData.clone();
+        double[] filtered_inverted = invertEdges(filtered,length);
+        double[] window = vonHannWindow(length);
+        return MathArrays.convolve(filtered_inverted,window);
         
     }
     
@@ -198,14 +312,15 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         return filtered;
     }
     
-    public void plotGraph(String source, double[] xAxis, double[] yAxis){
+    public Plot2DPanel plotGraph(String source, double[] xAxis, double[] yAxis){
         JFrame frame = new JFrame(source);
         Plot2DPanel panel = new Plot2DPanel();
-        panel.addLinePlot("Source",xAxis, yAxis);
+        panel.addLinePlot(source,xAxis, yAxis);
         frame.setContentPane(panel);
         frame.setSize(500,600);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setVisible(true);
+        return panel;
     }
     
     public int analyzeImageY(int[][] blueChannel){
