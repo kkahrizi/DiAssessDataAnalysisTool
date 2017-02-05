@@ -12,11 +12,12 @@ import java.util.ArrayList;
 import java.util.ListIterator;
 import java.awt.image.BufferedImage;
 import java.awt.Color;
-import java.awt.FlowLayout;
 import java.util.stream.*;
 import javax.swing.JOptionPane;
 import org.math.plot.*;
 import java.util.Arrays;
+import javax.swing.GroupLayout.ParallelGroup;
+import javax.swing.GroupLayout.SequentialGroup;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.util.MathArrays;
 /**
@@ -157,23 +158,26 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                 }
                 int[] tubeLocationsX = analyzeImageX(blueChannel, "Rack: " + thisImage.getRackNumber() + 
                         " Time:  " + thisImage.getTime());
+                int tubeLocationsY = analyzeImageY(blueChannel);
+                TubeLabeler myLabeler = new TubeLabeler();
+                myLabeler.showData(tubeLocationsX,tubeLocationsY,image);
+                JTextField[] ourTextFields = myLabeler.getLabels();
+                JButton saveData = myLabeler.getButton();
+                String[] labels = new String[ourTextFields.length];
                 
-                JFrame frame = new JFrame();
-                JFrame frame2 = new JFrame("original");
-                frame2.getContentPane().setLayout(new FlowLayout());
-                
-                frame.getContentPane().setLayout(new FlowLayout());
-                for (int x = 0; x < tubeLocationsX.length; x++){
-                    int xcor = tubeLocationsX[x]-77;
-                    BufferedImage crop = image.getSubimage(xcor-60,240,120,140);
-                    frame2.getContentPane().add(new JLabel(new ImageIcon(crop)));
-
-                    
+                saveData.addActionListener(new java.awt.event.ActionListener() {
+                    public void actionPerformed(java.awt.event.ActionEvent evt) {
+                        for (int textIndex = 0; textIndex < ourTextFields.length; textIndex++){
+                            labels[textIndex] = ourTextFields[textIndex].getText();
+                        }
+                        myLabeler.dispose();
                 }
-                frame2.pack();
-                frame2.setVisible(true);
+                    //include code to handle number of labeling frames that are open. when that number reaches zero, start the stitching, using feedback from the very beginning
+                });
                 
-                int tubeLocationY = analyzeImageY(blueChannel);
+                
+                
+                
                 String newTime = thisImage.getTime();
                 ListIterator<String> timeIterator = uniqueTimes.listIterator();
                 boolean isNew = true;
@@ -190,6 +194,8 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         }
         return true;
     }
+    
+    
     
     /**
      *
@@ -231,8 +237,8 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         }
         
         //Plot2DPanel plot = plotGraph(source,xAxis,yAxis);
-        Plot2DPanel plot = plotGraph(source + " Hanning ", xAxis, filtered);
-        plot.addStaircasePlot("Location" , minimaX,minimaY);
+        //Plot2DPanel plot = plotGraph(source + " Hanning ", xAxis, filtered);
+        //plot.addStaircasePlot("Location" , minimaX,minimaY);
         return finalMinima;
         
         
@@ -323,8 +329,52 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         return panel;
     }
     
+   
     public int analyzeImageY(int[][] blueChannel){
-        return 0;
+        int[] collapsedY = new int[blueChannel[0].length];
+        for (int y = 0; y < collapsedY.length; y++){
+            int runningSum = 0;
+            for (int x = 0; x < blueChannel.length; x++){
+                runningSum = runningSum + blueChannel[x][y];
+            }
+            collapsedY[y] = runningSum;
+        }
+        
+        //Arrays below are for plotting
+        double[] xAxis = new double[collapsedY.length];
+        double[] yAxis = new double[collapsedY.length];
+        for (int x = 0; x < xAxis.length; x++){
+            xAxis[x] = x;
+            yAxis[x] = collapsedY[x];
+        }
+        
+        
+        double[] filtered = hanningWindow(yAxis,51);
+        
+        //plotGraph("YAxis_Hanning",xAxis, filtered);
+        int hardMin = 280;
+        int hardMax = 470;
+        int[] minima = findLocalMinima(filtered, 100);
+        ArrayList<Integer> filteredMinima = new ArrayList();
+        for (int i = 0; i < minima.length; i++){
+            if(minima[i] > hardMin && minima[i] < hardMax){
+                filteredMinima.add(minima[i]);
+            }
+        }
+       
+        
+        int numMinima = filteredMinima.size();
+        int[] finalMinima = new int[numMinima];
+        double[] minimaY = new double[numMinima];
+        double[] minimaX = new double[numMinima];
+        for (int i = 0; i < numMinima; i++){
+            minimaX[i] = (double) filteredMinima.get(i);
+            minimaY[i] = filtered[filteredMinima.get(i)];
+            finalMinima[i] = filteredMinima.get(i);
+        }
+        //System.out.println(finalMinima.length);
+        //System.out.println(finalMinima[0]);
+        return finalMinima[0];
     }
     
     
@@ -441,3 +491,5 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
     private javax.swing.JButton waitContinueButton;
     // End of variables declaration//GEN-END:variables
 }
+
+
