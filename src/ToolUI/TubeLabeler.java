@@ -23,60 +23,66 @@ public class TubeLabeler extends javax.swing.JFrame {
 
     JLabel[] allCroppedImages;
     FocusTextField[] textArray;
+    imagePair[] croppedImages;
     /**
      * Creates new form TubeLabeler
      */
-    public TubeLabeler() {
+    public TubeLabeler(int[] tubeLocationsX, int tubeLocationY, BufferedImage image, int rackNumber, String time) {
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        int yRange = 70;
+                 
+               
+        int numTubes = tubeLocationsX.length;
+        croppedImages = new imagePair[numTubes];
+        GroupLayout myLayout = new GroupLayout(tubePanel);
+        tubePanel.setLayout(myLayout);
+        this.setTitle("Rack " + rackNumber + ". Time: " + time);
+        myLayout.setAutoCreateGaps(true);
+        myLayout.setAutoCreateContainerGaps(true);
+
+
+
+        textArray = new FocusTextField[numTubes];
+        allCroppedImages = new JLabel[numTubes];
+
+        GroupLayout.SequentialGroup horGroup = myLayout.createSequentialGroup();
+        GroupLayout.ParallelGroup pictureGroup = myLayout.createParallelGroup();
+        GroupLayout.ParallelGroup textGroup = myLayout.createParallelGroup();
+
+        for (int x = 0; x < tubeLocationsX.length; x++){
+            int xcor = tubeLocationsX[x]-77;
+            BufferedImage crop = image.getSubimage(xcor-60,tubeLocationY-4*yRange,120,yRange*5);
+            croppedImages[x] = new imagePair(rackNumber,time,image.getSubimage(xcor-60,tubeLocationY-3*yRange,120,yRange*5));
+            textArray[x] = new FocusTextField();
+
+            if(x != 0){
+                textArray[x].setText("Same as tube to the left");
+            } else {
+                textArray[x].setText("Enter a label for this tube");
+            }
+            allCroppedImages[x] = new JLabel(new ImageIcon(crop));
+            horGroup.addGroup(myLayout.createParallelGroup()
+                    .addComponent(allCroppedImages[x])
+                    .addComponent(textArray[x]));
+
+            pictureGroup.addComponent(allCroppedImages[x]);
+            textGroup.addComponent(textArray[x]);
+        }
+
+        myLayout.setHorizontalGroup(horGroup);
+        myLayout.setVerticalGroup(myLayout.createSequentialGroup()
+                .addGroup(pictureGroup)
+                .addGroup(textGroup));
+    }
+    
+    imagePair[] getCroppedImages(){
+        return croppedImages;
     }
 
-    public void showData(int[] tubeLocationsX, int tubeLocationY, BufferedImage image){
-         int yRange = 70;
-               
-                int numTubes = tubeLocationsX.length;
-                GroupLayout myLayout = new GroupLayout(tubePanel);
-                tubePanel.setLayout(myLayout);
-                
-                myLayout.setAutoCreateGaps(true);
-                myLayout.setAutoCreateContainerGaps(true);
-                
-                
-              
-                textArray = new FocusTextField[numTubes];
-                allCroppedImages = new JLabel[numTubes];
-                
-                GroupLayout.SequentialGroup horGroup = myLayout.createSequentialGroup();
-                GroupLayout.ParallelGroup pictureGroup = myLayout.createParallelGroup();
-                GroupLayout.ParallelGroup textGroup = myLayout.createParallelGroup();
-                
-                for (int x = 0; x < tubeLocationsX.length; x++){
-                    int xcor = tubeLocationsX[x]-77;
-                    BufferedImage crop = image.getSubimage(xcor-60,tubeLocationY-4*yRange,120,yRange*5);
-                    textArray[x] = new FocusTextField();
-
-                    if(x != 0){
-                        textArray[x].setText("Same as tube to the left");
-                    } else {
-                        textArray[x].setText("Enter a label for this tube");
-                    }
-                    allCroppedImages[x] = new JLabel(new ImageIcon(crop));
-                    horGroup.addGroup(myLayout.createParallelGroup()
-                            .addComponent(allCroppedImages[x])
-                            .addComponent(textArray[x]));
-                    
-                    pictureGroup.addComponent(allCroppedImages[x]);
-                    textGroup.addComponent(textArray[x]);
-                }
-                
-                myLayout.setHorizontalGroup(horGroup);
-                myLayout.setVerticalGroup(myLayout.createSequentialGroup()
-                        .addGroup(pictureGroup)
-                        .addGroup(textGroup));
-                
-                
-                this.pack();
-                this.setVisible(true);
+    public void showData(){      
+        this.pack();
+        this.setVisible(true);
                 
     }
     
@@ -87,6 +93,7 @@ public class TubeLabeler extends javax.swing.JFrame {
     public JButton getButton(){
         return jButton1;
     }
+     
     
      static class FocusTextField extends JTextField {
     {
@@ -164,40 +171,7 @@ public class TubeLabeler extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(TubeLabeler.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(TubeLabeler.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(TubeLabeler.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(TubeLabeler.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new TubeLabeler().setVisible(true);
-            }
-        });
-    }
+  
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;

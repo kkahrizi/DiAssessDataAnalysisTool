@@ -15,6 +15,7 @@ public class imagePair {
     public int rackNumber;
     private String time;
     private BufferedImage image;
+    private String tubeLabel;
     
     public imagePair(int num, String when, BufferedImage what){
         rackNumber = num;
@@ -24,6 +25,14 @@ public class imagePair {
             time = when;
         }
         image = what;
+    }
+    
+    public String getLabel(){
+        return tubeLabel;
+    }
+    
+    public void setLabels(String toLabel){
+        tubeLabel = toLabel;
     }
     
     public int getRackNumber(){

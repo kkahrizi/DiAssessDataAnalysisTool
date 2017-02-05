@@ -141,13 +141,26 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         //First create an arraylist<String> of all unique image times, and also
         //create an arraylist of all tubelocations
         ArrayList<String> uniqueTimes = new ArrayList();
+        int numOpenLabelFrames = 0;
         for(int i = 0; i < allImages.length; i++){
             ArrayList thisRacksImages = allImages[i];
             ListIterator<imagePair> imageIterator = thisRacksImages.listIterator();
+            ArrayList<Integer> uniqueRacks = new ArrayList<Integer>();
+            
             while (imageIterator.hasNext()){
                 imagePair thisImage = imageIterator.next();
                 BufferedImage image = thisImage.getImage();
-               
+                int rackNumber = thisImage.getRackNumber();
+                boolean isNewRack = true;
+                for (int existingRack = 0; existingRack < uniqueRacks.size(); existingRack++){
+                    if(uniqueRacks.get(existingRack) == rackNumber ){
+                        isNewRack = false;
+                        break;
+                    }
+                }
+                if (isNewRack){
+                    uniqueRacks.add(rackNumber);
+                }
                 int width = image.getWidth();
                 int height = image.getHeight();
                 int[][] blueChannel = new int[width][height];
@@ -159,22 +172,33 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                 int[] tubeLocationsX = analyzeImageX(blueChannel, "Rack: " + thisImage.getRackNumber() + 
                         " Time:  " + thisImage.getTime());
                 int tubeLocationsY = analyzeImageY(blueChannel);
-                TubeLabeler myLabeler = new TubeLabeler();
-                myLabeler.showData(tubeLocationsX,tubeLocationsY,image);
-                JTextField[] ourTextFields = myLabeler.getLabels();
-                JButton saveData = myLabeler.getButton();
-                String[] labels = new String[ourTextFields.length];
-                
-                saveData.addActionListener(new java.awt.event.ActionListener() {
+                TubeLabeler myLabeler = new TubeLabeler(tubeLocationsX,tubeLocationsY,image,thisImage.getRackNumber(),thisImage.getTime());
+                imagePair[] croppedImages = myLabeler.getCroppedImages();
+                if (isNewRack) {
+                    myLabeler.showData();
+                    numOpenLabelFrames++;
+                    JTextField[] ourTextFields = myLabeler.getLabels();
+                    JButton saveData = myLabeler.getButton();
+                    String[] labels = new String[ourTextFields.length];
+                    for (int labelIndex = 0; labelIndex < labels.length; labelIndex++){
+                        croppedImages[labelIndex].setLabels(labels[labelIndex]);
+                    }
+                              
+                    saveData.addActionListener(new java.awt.event.ActionListener() {
                     public void actionPerformed(java.awt.event.ActionEvent evt) {
                         for (int textIndex = 0; textIndex < ourTextFields.length; textIndex++){
                             labels[textIndex] = ourTextFields[textIndex].getText();
                         }
+                        int numFrames = decrementNumFrames(numOpenLabelFrames);
                         myLabeler.dispose();
-                }
+                    }
+                    
+                    public int decrementNumFrames(int numFrames){
+                        return numFrames-1;
+                    }
                     //include code to handle number of labeling frames that are open. when that number reaches zero, start the stitching, using feedback from the very beginning
                 });
-                
+                }
                 
                 
                 
@@ -195,7 +219,9 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         return true;
     }
     
-    
+    public int closeLabellingFrame(String[] ){
+        
+    }
     
     /**
      *
