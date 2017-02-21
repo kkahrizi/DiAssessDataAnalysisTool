@@ -11,13 +11,13 @@ import java.awt.image.BufferedImage;
  *@param image is the buffered image
  * @author kamin
  */
-public class imagePair {
+public class ImagePair {
     public int rackNumber;
     private String time;
     private BufferedImage image;
     private String tubeLabel;
     
-    public imagePair(int num, String when, BufferedImage what){
+    public ImagePair(int num, String when, BufferedImage what){
         rackNumber = num;
         if(when.contains(".jpg")){
             time = when.substring(0,4);

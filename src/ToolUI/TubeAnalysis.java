@@ -121,7 +121,7 @@ public class TubeAnalysis extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this,"Please select a folder to load");
             }
             else {
-                loadingFrame loadData = new loadingFrame(chosenFolder);
+                LoadingFrame loadData = new LoadingFrame(chosenFolder);
                 loadData.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
                 loadData.setVisible(true);
                 

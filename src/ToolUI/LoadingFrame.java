@@ -16,28 +16,34 @@ import java.util.stream.*;
 import javax.swing.JOptionPane;
 import org.math.plot.*;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.GroupLayout.ParallelGroup;
 import javax.swing.GroupLayout.SequentialGroup;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.util.MathArrays;
+import javax.swing.Timer;
 /**
  *
  * @author kamin
  */
-public class loadingFrame extends javax.swing.JFrame implements FileFilter {
+public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
     public String currentText;
     public File passedFolder;
     public int organize;
     public final int EQUAL_NUMBER = 0;
     public final int STITCH_TOGETHER = 1;
     public final int ORGANIZE = 2;
-    public ArrayList<imagePair>[] allImages;
+    public ArrayList<ImagePair>[] allImages;
+    public LabelManager myManager;
     /**
      * Creates new form loadingFrame
      */
-    public loadingFrame(File folder) {
+    public LoadingFrame(File folder) {
         setUndecorated(true);
         initComponents();
+        this.getRootPane().setDefaultButton(waitContinueButton);
+        myTextField.setEditable(false);
         currentText = "";
         passedFolder = folder;
         boolean success = loadImages(folder);
@@ -46,8 +52,10 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
             waitContinueButton.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent e){
                     analyzeImages();
+                    
                 }
             });
+            
         } else {
             waitContinueButton.setText("Select another folder.");
             waitContinueButton.addActionListener(new ActionListener(){
@@ -80,9 +88,9 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
         for (File subFolder : allSubFolders){
             addText(Integer.toString(index) + ". Looking in " + subFolder.getAbsolutePath());
             String[] splitStr = subFolder.getName().split("\\s");
-            System.out.println(subFolder.getName());
-            System.out.println(splitStr[splitStr.length-1]);
-            System.out.println(Integer.parseInt(splitStr[splitStr.length-1]));
+            //System.out.println(subFolder.getName());
+            //System.out.println(splitStr[splitStr.length-1]);
+            //System.out.println(Integer.parseInt(splitStr[splitStr.length-1]));
             int rackNumber = Integer.parseInt(splitStr[splitStr.length -1]);
             File[] allFiles = subFolder.listFiles();
             ArrayList<File> filteredFiles = new ArrayList();
@@ -111,7 +119,7 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                     allImages[index-1] = new ArrayList();
                 }
                 try{
-                    allImages[index-1].add(new imagePair(rackNumber, file.getName(),ImageIO.read(file)));
+                    allImages[index-1].add(new ImagePair(rackNumber, file.getName(),ImageIO.read(file)));
                 } catch (IOException e) {
                     addText("An error occurred while trying to open image " + file.getName());
                 }
@@ -137,18 +145,18 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
     //Returns true if successful, false if failed
     public boolean analyzeImages(){
         addText("Ok, starting to analyze images.");
-        
+        myManager = new LabelManager(passedFolder);
         //First create an arraylist<String> of all unique image times, and also
         //create an arraylist of all tubelocations
         ArrayList<String> uniqueTimes = new ArrayList();
-        int numOpenLabelFrames = 0;
+        
         for(int i = 0; i < allImages.length; i++){
             ArrayList thisRacksImages = allImages[i];
-            ListIterator<imagePair> imageIterator = thisRacksImages.listIterator();
+            ListIterator<ImagePair> imageIterator = thisRacksImages.listIterator();
             ArrayList<Integer> uniqueRacks = new ArrayList<Integer>();
             
             while (imageIterator.hasNext()){
-                imagePair thisImage = imageIterator.next();
+                ImagePair thisImage = imageIterator.next();
                 BufferedImage image = thisImage.getImage();
                 int rackNumber = thisImage.getRackNumber();
                 boolean isNewRack = true;
@@ -173,35 +181,15 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                         " Time:  " + thisImage.getTime());
                 int tubeLocationsY = analyzeImageY(blueChannel);
                 TubeLabeler myLabeler = new TubeLabeler(tubeLocationsX,tubeLocationsY,image,thisImage.getRackNumber(),thisImage.getTime());
-                imagePair[] croppedImages = myLabeler.getCroppedImages();
+                ImagePair[] croppedImages = myLabeler.getCroppedImages();
+                
                 if (isNewRack) {
-                    myLabeler.showData();
-                    numOpenLabelFrames++;
-                    JTextField[] ourTextFields = myLabeler.getLabels();
-                    JButton saveData = myLabeler.getButton();
-                    String[] labels = new String[ourTextFields.length];
-                    for (int labelIndex = 0; labelIndex < labels.length; labelIndex++){
-                        croppedImages[labelIndex].setLabels(labels[labelIndex]);
-                    }
-                              
-                    saveData.addActionListener(new java.awt.event.ActionListener() {
-                    public void actionPerformed(java.awt.event.ActionEvent evt) {
-                        for (int textIndex = 0; textIndex < ourTextFields.length; textIndex++){
-                            labels[textIndex] = ourTextFields[textIndex].getText();
-                        }
-                        int numFrames = decrementNumFrames(numOpenLabelFrames);
-                        myLabeler.dispose();
-                    }
+                    myLabeler.showData(myManager);
+                    int numFramesWhenOpen = myManager.incrementNumFrames();
                     
-                    public int decrementNumFrames(int numFrames){
-                        return numFrames-1;
-                    }
-                    //include code to handle number of labeling frames that are open. when that number reaches zero, start the stitching, using feedback from the very beginning
-                });
                 }
-                
-                
-                
+                      
+             
                 String newTime = thisImage.getTime();
                 ListIterator<String> timeIterator = uniqueTimes.listIterator();
                 boolean isNew = true;
@@ -216,12 +204,12 @@ public class loadingFrame extends javax.swing.JFrame implements FileFilter {
                 }
             }
         }
+        
+        
         return true;
     }
     
-    public int closeLabellingFrame(String[] ){
-        
-    }
+    
     
     /**
      *

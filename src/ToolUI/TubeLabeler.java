@@ -5,6 +5,7 @@
  */
 package ToolUI;
 
+import java.awt.Dimension;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.image.BufferedImage;
@@ -14,27 +15,33 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.Timer;
 
 /**
  *
  * @author kamin
  */
 public class TubeLabeler extends javax.swing.JFrame {
-
+    LabelManager theManager;
     JLabel[] allCroppedImages;
     FocusTextField[] textArray;
-    imagePair[] croppedImages;
+    ImagePair[] croppedImages;
+    String sameToken;
+    String firstStringToken;
     /**
      * Creates new form TubeLabeler
      */
     public TubeLabeler(int[] tubeLocationsX, int tubeLocationY, BufferedImage image, int rackNumber, String time) {
         initComponents();
+        this.getRootPane().setDefaultButton(jButton1);
+        sameToken = "Same as tube to the left";
+        firstStringToken = "Enter a label for this tube";
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         int yRange = 70;
                  
                
         int numTubes = tubeLocationsX.length;
-        croppedImages = new imagePair[numTubes];
+        croppedImages = new ImagePair[numTubes];
         GroupLayout myLayout = new GroupLayout(tubePanel);
         tubePanel.setLayout(myLayout);
         this.setTitle("Rack " + rackNumber + ". Time: " + time);
@@ -52,14 +59,17 @@ public class TubeLabeler extends javax.swing.JFrame {
 
         for (int x = 0; x < tubeLocationsX.length; x++){
             int xcor = tubeLocationsX[x]-77;
-            BufferedImage crop = image.getSubimage(xcor-60,tubeLocationY-4*yRange,120,yRange*5);
-            croppedImages[x] = new imagePair(rackNumber,time,image.getSubimage(xcor-60,tubeLocationY-3*yRange,120,yRange*5));
+            int xHalfWidth = 70;
+            this.setPreferredSize(new Dimension(numTubes*2*xHalfWidth + 100,this.getContentPane().getSize().height+100));
+           
+            BufferedImage crop = image.getSubimage(xcor-xHalfWidth,tubeLocationY-4*yRange,2*xHalfWidth,yRange*5);
+            croppedImages[x] = new ImagePair(rackNumber,time,image.getSubimage(xcor-60,tubeLocationY-3*yRange,120,yRange*5));
             textArray[x] = new FocusTextField();
 
             if(x != 0){
-                textArray[x].setText("Same as tube to the left");
+                textArray[x].setText(sameToken);
             } else {
-                textArray[x].setText("Enter a label for this tube");
+                textArray[x].setText(firstStringToken);
             }
             allCroppedImages[x] = new JLabel(new ImageIcon(crop));
             horGroup.addGroup(myLayout.createParallelGroup()
@@ -76,13 +86,15 @@ public class TubeLabeler extends javax.swing.JFrame {
                 .addGroup(textGroup));
     }
     
-    imagePair[] getCroppedImages(){
+    ImagePair[] getCroppedImages(){
         return croppedImages;
     }
 
-    public void showData(){      
+    public void showData(LabelManager myManager){      
+        theManager = myManager;
         this.pack();
         this.setVisible(true);
+        
                 
     }
     
@@ -121,10 +133,18 @@ public class TubeLabeler extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        tubePanel = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        tubePanel = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        jButton1.setText("Save this rack's data");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout tubePanelLayout = new javax.swing.GroupLayout(tubePanel);
         tubePanel.setLayout(tubePanelLayout);
@@ -134,15 +154,10 @@ public class TubeLabeler extends javax.swing.JFrame {
         );
         tubePanelLayout.setVerticalGroup(
             tubePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 357, Short.MAX_VALUE)
+            .addGap(0, 371, Short.MAX_VALUE)
         );
 
-        jButton1.setText("Save this rack's data");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
+        jScrollPane3.setViewportView(tubePanel);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -150,17 +165,18 @@ public class TubeLabeler extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(tubePanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 1359, Short.MAX_VALUE)
+                    .addComponent(jScrollPane3))
                 .addContainerGap())
-            .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 464, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(tubePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 54, Short.MAX_VALUE)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 24, Short.MAX_VALUE)
+                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
 
@@ -169,12 +185,49 @@ public class TubeLabeler extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
+       
+     
+        String previousTubeName = "";
+        LabeledTime newTime = new LabeledTime();
+        for (int i = 0; i < textArray.length; i++){
+            String thisTubeName = textArray[i].getText();
+            if (thisTubeName.equalsIgnoreCase(sameToken)){
+                thisTubeName = previousTubeName;
+            } else {
+                if(!previousTubeName.equals("")){
+                    theManager.addTime(newTime);
+                    newTime = new LabeledTime();
+                }
+                previousTubeName = thisTubeName;
+                ImagePair thisCrop = croppedImages[i];
+                BufferedImage thisImage = thisCrop.getImage();
+                String time = thisCrop.getTime();
+                Tube newTube = new Tube(thisTubeName,thisImage,Integer.toString(thisCrop.getRackNumber()),time);
+                newTime.addTube(newTube);
+            } 
+        }
+        Tube[] theseTubes = newTime.getTubes();
+        for(int i = 0; i < theseTubes.length; i++){
+            System.out.println(theseTubes[i].getSample());
+        }
+        theManager.addTime(newTime);
+        int numFrames = theManager.decrementNumFrames();
+        
+        if (numFrames < 1){
+            
+            saveImagesToFile();
+        }
+        this.setVisible(false);
+        this.dispose();
     }//GEN-LAST:event_jButton1ActionPerformed
 
-  
+  public void saveImagesToFile(){
+      theManager.saveImages();
+  }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
+    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JPanel tubePanel;
     // End of variables declaration//GEN-END:variables
 }
