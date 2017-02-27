@@ -18,28 +18,15 @@ public class LabeledImage {
         sampleStrings = new String[0];
     }
     
-    public LabeledImage(LabeledSample[] theseRacks, String[] theseSampleStrings){
+    public LabeledImage(LabeledSample[] theseRacks){
         mySamples = theseRacks;
-        sampleStrings = theseSampleStrings;
+        for (int i = 0; i < theseRacks.length; i++){
+            addSampleString(theseRacks[i].getSampleString());
+        }
     }
     
-    public void addTime(LabeledTime thisTime){
-        String time = thisTime.getTime();
-        String sample = thisTime.getSample();
-        
-               
-        for (int i = 0; i < mySamples.length; i++){
-            if (mySamples[i].getSampleString().equalsIgnoreCase(sample)){
-                mySamples[i].addTime(thisTime);
-                return;
-            }
-        }
-        LabeledSample newSample = new LabeledSample();
-        newSample.addTime(thisTime);
-        addSample(newSample);
-        addSampleString(sample);
-        
-    }
+  
+ 
     
     public String[] getSampleStrings(){
         return sampleStrings;
@@ -68,7 +55,7 @@ public class LabeledImage {
     }
     
     private void addSampleString(String newSample){
-        if (sampleStrings.length < 1){
+        if (sampleStrings == null || sampleStrings.length < 1){
             sampleStrings = new String[1];
             sampleStrings[0] = newSample;
             return;

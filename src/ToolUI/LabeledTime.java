@@ -12,18 +12,49 @@ package ToolUI;
 public class LabeledTime {
     Tube[] allTubes;
     String time;
-    String sample;
+    String label;
+    int rack;
     
-    public LabeledTime(Tube[] theseTubes, String theTime, String theSample){
+    public LabeledTime(Tube[] theseTubes, String theTime, int theRack){
         allTubes = theseTubes;
         time = theTime;
-        sample = theSample;
+        rack = theRack;
     }
     
     public LabeledTime(){
         allTubes = new Tube[0];
         time = "";
-        sample = "";
+        
+    }
+    
+    public boolean hasLabel(){
+        if (label == null){
+            return false;
+        }
+        return true;
+    }
+    
+    public String getLabel(){
+        return label;
+    }
+    
+    public void label(String newLabel){
+        label = newLabel;
+    }
+    
+    public boolean isSameRack(LabeledTime otherTime){
+        if(otherTime.getRack()==rack){
+            return true;
+        }
+        return false;
+    }
+
+    public void setRack(int thisRack){
+        rack = thisRack;
+    }
+    
+    public int getRack(){
+        return rack;
     }
     
     public Tube[] getTubes(){
@@ -34,16 +65,34 @@ public class LabeledTime {
         return time;
     }
     
-    public String getSample(){
-        return sample;
+    public void setTime(String time){
+         this.time = time;
     }
+    
+     
+    
+    public boolean label(LabeledTime labels){
+        Tube[] labeledTubes = labels.getTubes();
+        for (int i = 0; i < labeledTubes.length; i++){
+            Tube labeledTube = labeledTubes[i];
+            for (int j = 0; j < allTubes.length; j++){
+                Tube toBeLabeled = allTubes[j];
+                if (toBeLabeled.getPosition() == labeledTube.getPosition()){
+                    toBeLabeled.addLabel(labeledTube.getLabel());
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
     
     public void addTube(Tube tubeToAdd){
         if(allTubes.length == 0){
             allTubes = new Tube[1];
             allTubes[0] = tubeToAdd;
             time = tubeToAdd.getTime();
-            sample = tubeToAdd.getSample();
+           
             return;
         }
         Tube[] newTubes = new Tube[allTubes.length+1];

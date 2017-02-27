@@ -98,6 +98,16 @@ public class TubeLabeler extends javax.swing.JFrame {
                 
     }
     
+    public Tube[] getTubes(){
+        Tube[] myTubes = new Tube[croppedImages.length];
+        for (int i = 0; i < croppedImages.length; i++){
+            ImagePair thisCrop = croppedImages[i];
+            Tube newTube = new Tube("",thisCrop.getImage(),thisCrop.getRackNumber(),thisCrop.getTime(),i);
+            myTubes[i] = newTube;
+        }
+        return myTubes;
+    }
+    
     public JTextField[] getLabels(){
         return textArray;
     }
@@ -202,7 +212,7 @@ public class TubeLabeler extends javax.swing.JFrame {
                 ImagePair thisCrop = croppedImages[i];
                 BufferedImage thisImage = thisCrop.getImage();
                 String time = thisCrop.getTime();
-                Tube newTube = new Tube(thisTubeName,thisImage,Integer.toString(thisCrop.getRackNumber()),time);
+                Tube newTube = new Tube(thisTubeName,thisImage,thisCrop.getRackNumber(),time,i);
                 newTime.addTube(newTube);
             } 
         }
@@ -210,7 +220,8 @@ public class TubeLabeler extends javax.swing.JFrame {
         for(int i = 0; i < theseTubes.length; i++){
             System.out.println(theseTubes[i].getSample());
         }
-        theManager.addTime(newTime);
+        theManager.convertRackToSample(newTime);
+        
         int numFrames = theManager.decrementNumFrames();
         
         if (numFrames < 1){

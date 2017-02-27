@@ -14,15 +14,29 @@ import java.awt.image.BufferedImage;
 public class Tube {
     String label;
     BufferedImage tubeImage;
-    String rack;
+    int rack;
     String time;
+    int tubePosition;
     
     
-    public Tube(String newLabel, BufferedImage cropImage, String aRack, String aTime){
+    public Tube(String newLabel, BufferedImage cropImage, int aRack, String aTime, int position){
         label = newLabel;
         tubeImage = cropImage;
         rack = aRack;
         time = aTime;
+        tubePosition = position;
+    }
+    
+    public void addLabel(String thisLabel){
+        label = thisLabel;
+    }
+    
+    public int getPosition(){
+        return tubePosition;
+    }
+    
+    public void setPosition(int position){
+        tubePosition = position;
     }
     
     public String getLabel(){
@@ -33,7 +47,7 @@ public class Tube {
         return tubeImage;
     }
     
-    public String getRack(){
+    public int getRack(){
         return rack;
     }
    

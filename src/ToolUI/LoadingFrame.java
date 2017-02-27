@@ -181,14 +181,17 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
                         " Time:  " + thisImage.getTime());
                 int tubeLocationsY = analyzeImageY(blueChannel);
                 TubeLabeler myLabeler = new TubeLabeler(tubeLocationsX,tubeLocationsY,image,thisImage.getRackNumber(),thisImage.getTime());
-                ImagePair[] croppedImages = myLabeler.getCroppedImages();
+                
                 
                 if (isNewRack) {
                     myLabeler.showData(myManager);
                     int numFramesWhenOpen = myManager.incrementNumFrames();
                     
+                } else {
+                    myManager.storeTubes(myLabeler.getTubes(),thisImage.getRackNumber(),thisImage.getTime());
                 }
-                      
+                
+                
              
                 String newTime = thisImage.getTime();
                 ListIterator<String> timeIterator = uniqueTimes.listIterator();
@@ -201,7 +204,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
                 }
                 if (isNew){
                     uniqueTimes.add(newTime);
-                }
+                } 
             }
         }
         

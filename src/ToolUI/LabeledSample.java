@@ -14,8 +14,8 @@ public class LabeledSample {
     String[] timeStrings;
     LabeledTime[] myTimes;
     
-    public LabeledSample(LabeledTime[] allTimes){
-        sampleString = allTimes[0].getSample();
+    public LabeledSample(LabeledTime[] allTimes, String sample){
+        sampleString = sample;
         myTimes = allTimes;
         timeStrings = new String[allTimes.length];
         for(int i = 0; i < myTimes.length; i++){
@@ -45,9 +45,9 @@ public class LabeledSample {
         if (myTimes.length == 0){
             myTimes = new LabeledTime[1];
             myTimes[0] = thisTime;
-            sampleString = thisTime.getSample();
+            sampleString = thisTime.getLabel();
             addTimeString(thisTime.getTime());
-            return;
+                return;
         }
         LabeledTime[] newTimes = new LabeledTime[myTimes.length+1];
         for(int i = 0; i < myTimes.length; i++){
@@ -60,7 +60,7 @@ public class LabeledSample {
     
     private void addTimeString(String aTime){
         for (int i = 0; i < timeStrings.length; i++){
-            if(timeStrings[i].equalsIgnoreCase(aTime)){
+            if(timeStrings[i].equalsIgnoreCase(aTime)){ 
                 return;
             }
         }
