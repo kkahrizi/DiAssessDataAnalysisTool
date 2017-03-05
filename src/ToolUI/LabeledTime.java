@@ -5,6 +5,8 @@
  */
 package ToolUI;
 
+import java.util.ArrayList;
+
 /**
  *
  * @author kamin
@@ -71,7 +73,10 @@ public class LabeledTime {
     
      
     
-    public boolean label(LabeledTime labels){
+    public LabeledTime label(LabeledTime labels){
+        LabeledTime convertedSample = new LabeledTime();
+        convertedSample.setTime(labels.getTime());
+        convertedSample.setRack(labels.getRack());
         Tube[] labeledTubes = labels.getTubes();
         for (int i = 0; i < labeledTubes.length; i++){
             Tube labeledTube = labeledTubes[i];
@@ -79,11 +84,12 @@ public class LabeledTime {
                 Tube toBeLabeled = allTubes[j];
                 if (toBeLabeled.getPosition() == labeledTube.getPosition()){
                     toBeLabeled.addLabel(labeledTube.getLabel());
-                    return true;
+                    convertedSample.addTube(toBeLabeled);
                 }
             }
         }
-        return false;
+        
+        return convertedSample;
     }
     
     

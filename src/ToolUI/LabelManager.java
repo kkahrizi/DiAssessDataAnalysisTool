@@ -6,6 +6,8 @@
 package ToolUI;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  *
@@ -48,12 +50,22 @@ public class LabelManager {
             allRacks = new Rack[1];
             allRacks[0] = new Rack();
             allRacks[0].addTime(thisTime);
+            System.out.println("Making new rack " + thisTime.getRack() + " from time "
+                    + thisTime.getTime());
         } else {
             Rack[] newRacks = new Rack[allRacks.length+1];
             for (int i = 0; i < allRacks.length; i++){
                 newRacks[i] = allRacks[i];
                 if(allRacks[i].doesBelong(thisTime)){
                     allRacks[i].addTime(thisTime);
+                    System.out.println("Adding time " + thisTime.getTime() + " of rack "
+                            + thisTime.getRack());
+                    System.out.println(" To rack " + allRacks[i].getRackNumber());
+                    LabeledTime[] otherTimesInRack = allRacks[i].getTimes();
+                    for (int k = 0; k < otherTimesInRack.length; k++) {
+                        System.out.println(" The other time in this rack is " + otherTimesInRack[k].getTime());
+
+                    }
                     return;
                 }
             }
@@ -61,8 +73,10 @@ public class LabelManager {
             newRack.addTime(thisTime);
             newRacks[allRacks.length] = newRack;
             allRacks = newRacks;
-            
+            System.out.println("Adding time " + thisTime.getTime() + " of rack " + 
+                    thisTime.getRack());
         }
+        
     }
     
     public void addRack(Rack thisRack,LabeledTime thisTime){
@@ -72,27 +86,42 @@ public class LabelManager {
     
     public void storeTubes(Tube[] tubes, int rack, String time){
         LabeledTime newTime = new LabeledTime(tubes,time,rack);
+    
+        
         addTime(newTime);
+        
     }
     
     public void convertRackToSample(LabeledTime time){
         int rackNumberToLabel = time.getRack();
+        System.out.println("Converting rack " + rackNumberToLabel);
+        LabeledSample[] myConvertedSample = new LabeledSample[0];
         Rack rackToLabel = null;
+        
         for (int i = 0; i < allRacks.length; i++){
             rackToLabel = allRacks[i];
             if (rackToLabel.getRackNumber() == rackNumberToLabel){
-                if(!rackToLabel.labelRack(time)){
-                    System.out.println("Failed to use labeled tube template on all racks");
+                LabeledTime[] timesToConvert = rackToLabel.getTimes();
+                for (int j = 0; j < timesToConvert.length; j++){
+                    System.out.println("Labeling time " + timesToConvert[j].getTime() + " at rack "
+                    + timesToConvert[j].getRack());
                 }
+                LabeledSample converted = rackToLabel.labelRack(time);
+                officialImage.addSample(converted);
             }
         }
         if (rackToLabel == null){
             System.out.println("Only one time in this rack");
-            rackToLabel = new Rack();  
-        } 
-        rackToLabel.addTime(time);
-        LabeledSample[] allSamples = rackToLabel.convertToSamples();
-        
+            LabeledSample mySample = new LabeledSample();
+            mySample.addTime(time);
+            officialImage.addSample(mySample);
+        }         
+    }
+    
+    private LabeledSample[] appendValue(LabeledSample[] currentSample, LabeledSample newSample){
+        ArrayList<LabeledSample> temp = new ArrayList<LabeledSample>(Arrays.asList(currentSample));
+        temp.add(newSample);
+        return (LabeledSample[])temp.toArray();
         
     }
     
@@ -104,7 +133,9 @@ public class LabelManager {
             LabeledSample aSample = allSamples[i];
             System.out.println(aSample.getSampleString());
             LabeledTime[] ourTimes = aSample.getTimes();
-            
+            for (int j = 0; j < ourTimes.length; j++){
+                System.out.println(ourTimes[j].getTime());
+            }
         }
         
          

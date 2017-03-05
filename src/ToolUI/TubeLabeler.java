@@ -9,13 +9,13 @@ import java.awt.Dimension;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
-import javax.swing.Timer;
 
 /**
  *
@@ -195,33 +195,41 @@ public class TubeLabeler extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
-       
-     
+        int rackNumber = croppedImages[0].getRackNumber();
+        String time = croppedImages[0].getTime();
         String previousTubeName = "";
         LabeledTime newTime = new LabeledTime();
+        
+        newTime.setRack(rackNumber);
+        newTime.setTime(time);
+        ArrayList<LabeledTime> allTimesInThisRack = new ArrayList<LabeledTime>();
         for (int i = 0; i < textArray.length; i++){
             String thisTubeName = textArray[i].getText();
             if (thisTubeName.equalsIgnoreCase(sameToken)){
                 thisTubeName = previousTubeName;
             } else {
                 if(!previousTubeName.equals("")){
-                    theManager.addTime(newTime);
+                    //store the previous time and start a new time
+                    allTimesInThisRack.add(newTime);
                     newTime = new LabeledTime();
+                    newTime.setRack(rackNumber);
+                    newTime.setTime(time);
+                    newTime.label(thisTubeName);
                 }
                 previousTubeName = thisTubeName;
                 ImagePair thisCrop = croppedImages[i];
                 BufferedImage thisImage = thisCrop.getImage();
-                String time = thisCrop.getTime();
                 Tube newTube = new Tube(thisTubeName,thisImage,thisCrop.getRackNumber(),time,i);
+                System.out.println("Storing tube with label " + thisTubeName + " which is at time " + time + " rack " + 
+                        thisCrop.getRackNumber() + " at position " + i);
                 newTime.addTube(newTube);
             } 
         }
-        Tube[] theseTubes = newTime.getTubes();
-        for(int i = 0; i < theseTubes.length; i++){
-            System.out.println(theseTubes[i].getSample());
+        allTimesInThisRack.add(newTime);
+        System.out.println("There are " + allTimesInThisRack.size() + " samples in this rack" );
+        while (!allTimesInThisRack.isEmpty()){
+            theManager.convertRackToSample(allTimesInThisRack.remove(0));
         }
-        theManager.convertRackToSample(newTime);
-        
         int numFrames = theManager.decrementNumFrames();
         
         if (numFrames < 1){

@@ -33,6 +33,10 @@ public class LabeledSample {
         return myTimes;
     }
     
+    public void setSampleString(String val){
+        sampleString = val;
+    }
+    
     public String getSampleString(){
         return sampleString;
     }

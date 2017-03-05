@@ -42,15 +42,15 @@ public class Rack {
          return rackNumber;
      }
      
-     public boolean labelRack(LabeledTime labeledRack){
+     public LabeledSample labelRack(LabeledTime labeledRack){
+         LabeledSample finalProduct = new LabeledSample();
+         finalProduct.setSampleString(labeledRack.getLabel());
          for (int i = 0; i < myTimes.length; i++){
-             if(myTimes[i].label(labeledRack)){
-                 return true;
-             } else {
-                 return false;
-             }
+             LabeledTime labeledInstance = myTimes[i].label(labeledRack);
+             finalProduct.addTime(labeledInstance);
          }
-         return true;
+         finalProduct.addTime(labeledRack);
+         return finalProduct;
      }
      
   
