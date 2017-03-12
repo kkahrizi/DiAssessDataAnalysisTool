@@ -45,6 +45,7 @@ public class Rack {
      public LabeledSample labelRack(LabeledTime labeledRack){
          LabeledSample finalProduct = new LabeledSample();
          finalProduct.setSampleString(labeledRack.getLabel());
+         System.out.println("Labeling sample " + labeledRack.getLabel());
          for (int i = 0; i < myTimes.length; i++){
              LabeledTime labeledInstance = myTimes[i].label(labeledRack);
              finalProduct.addTime(labeledInstance);

@@ -77,6 +77,7 @@ public class LabeledTime {
         LabeledTime convertedSample = new LabeledTime();
         convertedSample.setTime(labels.getTime());
         convertedSample.setRack(labels.getRack());
+        convertedSample.label(labels.getLabel());
         Tube[] labeledTubes = labels.getTubes();
         for (int i = 0; i < labeledTubes.length; i++){
             Tube labeledTube = labeledTubes[i];

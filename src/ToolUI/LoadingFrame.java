@@ -178,8 +178,9 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
                     }
                 }
                 int[] tubeLocationsX = analyzeImageX(blueChannel, "Rack: " + thisImage.getRackNumber() + 
-                        " Time:  " + thisImage.getTime());
-                int tubeLocationsY = analyzeImageY(blueChannel);
+                        ", Time: " + thisImage.getTime());
+                int tubeLocationsY = analyzeImageY(blueChannel, "Rack: " + thisImage.getRackNumber() + 
+                        ", Time: " + thisImage.getTime());
                 TubeLabeler myLabeler = new TubeLabeler(tubeLocationsX,tubeLocationsY,image,thisImage.getRackNumber(),thisImage.getTime());
                 
                 
@@ -232,13 +233,15 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
         }
         
         double[] filtered = hanningWindow(yAxis,51);
-        int hardMin = 175;
+        int hardMin = 5;
         int hardMax = 2500;
-        int[] minima = findLocalMinima(filtered, 100);
+        double minimumDifference = 3000;
+        int[] minima = findLocalMinima(filtered, 80);
+        double maxValue = findMax(filtered);
         
         ArrayList<Integer> filteredMinima = new ArrayList();
         for (int i = 0; i < minima.length; i++){
-            if(minima[i] > hardMin && minima[i] < hardMax){
+            if(minima[i] > hardMin && minima[i] < hardMax && (maxValue-filtered[minima[i]])>minimumDifference){
                 filteredMinima.add(minima[i]);
             }
         }
@@ -259,6 +262,17 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
         return finalMinima;
         
         
+    }
+    
+    //Returns the largest value in an array
+    public double findMax(double[] array){
+        double max = 0;
+        for (int i = 0; i < array.length; i++){
+            if (array[i] > max){
+                max = array[i];
+            }
+        }
+        return max;
     }
     
     //Returns a double array of a hann window of the parametrized length
@@ -347,7 +361,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
     }
     
    
-    public int analyzeImageY(int[][] blueChannel){
+    public int analyzeImageY(int[][] blueChannel, String source){
         int[] collapsedY = new int[blueChannel[0].length];
         for (int y = 0; y < collapsedY.length; y++){
             int runningSum = 0;
@@ -368,7 +382,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
         
         double[] filtered = hanningWindow(yAxis,51);
         
-        //plotGraph("YAxis_Hanning",xAxis, filtered);
+        
         int hardMin = 280;
         int hardMax = 470;
         int[] minima = findLocalMinima(filtered, 100);
@@ -381,6 +395,11 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
        
         
         int numMinima = filteredMinima.size();
+        if (numMinima <1){
+            JOptionPane.showMessageDialog(this,"Could not find any tubes in " + source
+                    + ". You should check to make sure all images are correct.");
+        }
+        //System.out.println("Size of filteredMinima" + numMinima);
         int[] finalMinima = new int[numMinima];
         double[] minimaY = new double[numMinima];
         double[] minimaX = new double[numMinima];
@@ -389,9 +408,15 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
             minimaY[i] = filtered[filteredMinima.get(i)];
             finalMinima[i] = filteredMinima.get(i);
         }
-        //System.out.println(finalMinima.length);
-        //System.out.println(finalMinima[0]);
-        return finalMinima[0];
+        //Plot2DPanel plot = plotGraph(source,xAxis, filtered);
+       // plot.addStaircasePlot("Location",minimaX,minimaY);
+        int yCoord = 0;
+        try {
+            yCoord = finalMinima[0];           
+        } catch (IndexOutOfBoundsException e){
+            yCoord = 0;
+        }
+        return yCoord;
     }
     
     

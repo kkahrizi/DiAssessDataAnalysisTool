@@ -5,9 +5,16 @@
  */
 package ToolUI;
 
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 
 /**
  *
@@ -69,6 +76,8 @@ public class LabelManager {
                     return;
                 }
             }
+            System.out.println("Couldn't find a matching time. Making a new rack "
+                    + "for rack " + thisTime.getRack()  + " and time " + thisTime.getTime());
             Rack newRack = new Rack();
             newRack.addTime(thisTime);
             newRacks[allRacks.length] = newRack;
@@ -97,10 +106,25 @@ public class LabelManager {
         System.out.println("Converting rack " + rackNumberToLabel);
         LabeledSample[] myConvertedSample = new LabeledSample[0];
         Rack rackToLabel = null;
-        
+        boolean foundATime = false;
+//        System.out.println("There are " + allRacks.length + " racks. ");
+//        System.out.println("They are: ");
+//        for (int i = 0; i < allRacks.length; i++){
+//            Rack rackToPrint = allRacks[i];
+//            System.out.println("Rack " + rackToPrint.getRackNumber());
+//            LabeledTime[] timesToPrint = rackToPrint.getTimes();
+//            System.out.println("With " + timesToPrint.length + " times. Which are: ");
+//            for (int j = 0; j < timesToPrint.length; j++){
+//                LabeledTime printThis = timesToPrint[j];
+//                
+//                System.out.println(printThis.getTime());
+//            }
+//        }
+//        
         for (int i = 0; i < allRacks.length; i++){
             rackToLabel = allRacks[i];
             if (rackToLabel.getRackNumber() == rackNumberToLabel){
+                foundATime = true;
                 LabeledTime[] timesToConvert = rackToLabel.getTimes();
                 for (int j = 0; j < timesToConvert.length; j++){
                     System.out.println("Labeling time " + timesToConvert[j].getTime() + " at rack "
@@ -109,9 +133,10 @@ public class LabelManager {
                 LabeledSample converted = rackToLabel.labelRack(time);
                 officialImage.addSample(converted);
             }
+           
         }
-        if (rackToLabel == null){
-            System.out.println("Only one time in this rack");
+        if (!foundATime){
+            System.out.println("There is only one rack.");
             LabeledSample mySample = new LabeledSample();
             mySample.addTime(time);
             officialImage.addSample(mySample);
@@ -133,12 +158,76 @@ public class LabelManager {
             LabeledSample aSample = allSamples[i];
             System.out.println(aSample.getSampleString());
             LabeledTime[] ourTimes = aSample.getTimes();
+            BufferedImage vertConcat = null;
             for (int j = 0; j < ourTimes.length; j++){
-                System.out.println(ourTimes[j].getTime());
+                Tube[] ourTubes = ourTimes[j].getTubes();
+                BufferedImage horzConcat = null;
+                for (int k = 0; k < ourTubes.length; k ++){
+                    Tube tube1 = ourTubes[k];
+                    if(horzConcat == null){
+                        horzConcat = tube1.getImage();
+                    } else {
+                        horzConcat = joinImageHorz(horzConcat,tube1.getImage());
+                    }                    
+                }
+                if (vertConcat == null) {
+                    vertConcat = horzConcat;
+                } else {
+                    vertConcat = joinImageVert(vertConcat,horzConcat);
+                }
+                
             }
+            JFrame frame = new JFrame();
+            frame.getContentPane().setLayout(new FlowLayout());
+            frame.getContentPane().add(new JLabel(new ImageIcon(vertConcat)));
+           
+            frame.pack();
+            frame.setVisible(true);
+
         }
         
          
+    }
+    
+    public static BufferedImage joinImageHorz(BufferedImage img1,BufferedImage img2) {
+
+        //do some calculate first
+        int offset  = 5;
+        int wid = img1.getWidth()+img2.getWidth()+offset;
+        int height = Math.max(img1.getHeight(),img2.getHeight())+offset;
+        //create a new buffer and draw two image into the new image
+        BufferedImage newImage = new BufferedImage(wid,height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = newImage.createGraphics();
+        Color oldColor = g2.getColor();
+        //fill background
+        g2.setPaint(Color.WHITE);
+        g2.fillRect(0, 0, wid, height);
+        //draw image
+        g2.setColor(oldColor);
+        g2.drawImage(img1, null, 0, 0);
+        g2.drawImage(img2, null, img1.getWidth()+offset, 0);
+        g2.dispose();
+        return newImage;
+    }
+    
+    public static BufferedImage joinImageVert(BufferedImage img1, BufferedImage img2){
+        //do some calculate first
+        int offset  = 5;
+        int height = img1.getHeight()+img2.getHeight()+offset;
+        int wid = Math.max(img1.getWidth(),img2.getWidth())+offset;
+        //create a new buffer and draw two image into the new image
+        BufferedImage newImage = new BufferedImage(wid,height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = newImage.createGraphics();
+        Color oldColor = g2.getColor();
+        //fill background
+        g2.setPaint(Color.WHITE);
+        g2.fillRect(0, 0, wid, height);
+        //draw image
+        g2.setColor(oldColor);
+        g2.drawImage(img1, null, 0, 0);
+        g2.drawImage(img2, null, 0, img1.getHeight()+offset);
+        g2.dispose();
+        return newImage;
     }
 }
     

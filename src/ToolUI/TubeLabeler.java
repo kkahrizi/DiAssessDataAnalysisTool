@@ -59,11 +59,25 @@ public class TubeLabeler extends javax.swing.JFrame {
 
         for (int x = 0; x < tubeLocationsX.length; x++){
             int xcor = tubeLocationsX[x]-77;
-            int xHalfWidth = 70;
+            int xHalfWidth = 80;
+            int xStart = xcor - xHalfWidth;
+            int xEnd = xcor + xHalfWidth;
+            if (xStart < 0){
+                xStart = 0;
+            }
+            if (xEnd > image.getWidth()) {
+                xEnd = image.getWidth();
+            }
+                   
+            
+            
+            int xExtra = 20; //Width of each image is a little longer than 2*xHalfWidth to avoid cropping tubes
+            //System.out.println("X start:"  + xStart);
+            //System.out.println("X end:" + xEnd);
             this.setPreferredSize(new Dimension(numTubes*2*xHalfWidth + 100,this.getContentPane().getSize().height+100));
            
-            BufferedImage crop = image.getSubimage(xcor-xHalfWidth,tubeLocationY-4*yRange,2*xHalfWidth,yRange*5);
-            croppedImages[x] = new ImagePair(rackNumber,time,image.getSubimage(xcor-60,tubeLocationY-3*yRange,120,yRange*5));
+            BufferedImage crop = image.getSubimage(xStart,tubeLocationY-4*yRange,xEnd-xStart,yRange*5);
+            croppedImages[x] = new ImagePair(rackNumber,time,image.getSubimage(xStart,tubeLocationY-3*yRange,xEnd-xStart,yRange*5));
             textArray[x] = new FocusTextField();
 
             if(x != 0){
@@ -202,32 +216,34 @@ public class TubeLabeler extends javax.swing.JFrame {
         
         newTime.setRack(rackNumber);
         newTime.setTime(time);
+        newTime.label(textArray[0].getText());
         ArrayList<LabeledTime> allTimesInThisRack = new ArrayList<LabeledTime>();
-        for (int i = 0; i < textArray.length; i++){
+        System.out.println("There are " + textArray.length + " tubes in this rack");
+        for (int i = 0; i < textArray.length; i++) {
             String thisTubeName = textArray[i].getText();
-            if (thisTubeName.equalsIgnoreCase(sameToken)){
+            if (thisTubeName.equalsIgnoreCase(sameToken)) {
                 thisTubeName = previousTubeName;
-            } else {
-                if(!previousTubeName.equals("")){
-                    //store the previous time and start a new time
-                    allTimesInThisRack.add(newTime);
-                    newTime = new LabeledTime();
-                    newTime.setRack(rackNumber);
-                    newTime.setTime(time);
-                    newTime.label(thisTubeName);
-                }
-                previousTubeName = thisTubeName;
-                ImagePair thisCrop = croppedImages[i];
-                BufferedImage thisImage = thisCrop.getImage();
-                Tube newTube = new Tube(thisTubeName,thisImage,thisCrop.getRackNumber(),time,i);
-                System.out.println("Storing tube with label " + thisTubeName + " which is at time " + time + " rack " + 
-                        thisCrop.getRackNumber() + " at position " + i);
-                newTime.addTube(newTube);
-            } 
+            } else if (!previousTubeName.equals("")) {
+                //store the previous time and start a new time
+                allTimesInThisRack.add(newTime);
+                newTime = new LabeledTime();
+                newTime.setRack(rackNumber);
+                newTime.setTime(time);
+                newTime.label(thisTubeName);
+            }
+            previousTubeName = thisTubeName;
+            ImagePair thisCrop = croppedImages[i];
+            BufferedImage thisImage = thisCrop.getImage();
+            Tube newTube = new Tube(thisTubeName, thisImage, thisCrop.getRackNumber(), time, i);
+            System.out.println("Storing tube with label " + thisTubeName + " which is at time " + time + " rack "
+                    + thisCrop.getRackNumber() + " at position " + i);
+            newTime.addTube(newTube);
+
         }
         allTimesInThisRack.add(newTime);
         System.out.println("There are " + allTimesInThisRack.size() + " samples in this rack" );
         while (!allTimesInThisRack.isEmpty()){
+            System.out.println("Sending " + allTimesInThisRack.get(0).getLabel() + " to be converted.");
             theManager.convertRackToSample(allTimesInThisRack.remove(0));
         }
         int numFrames = theManager.decrementNumFrames();

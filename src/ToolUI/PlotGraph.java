@@ -24,7 +24,7 @@ public class PlotGraph extends javax.swing.JFrame {
     public void plotArrays(double[] xAxis, double[] yAxis){
         
         
-    }
+    } 
     
     
     
