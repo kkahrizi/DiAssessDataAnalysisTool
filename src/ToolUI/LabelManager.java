@@ -7,7 +7,9 @@ package ToolUI;
 
 import java.awt.Color;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
@@ -167,33 +169,30 @@ public class LabelManager {
                     if(horzConcat == null){
                         horzConcat = tube1.getImage();
                     } else {
-                        horzConcat = joinImageHorz(horzConcat,tube1.getImage());
+                        horzConcat = joinImageHorz(horzConcat,tube1.getImage(),10);
                     }                    
                 }
                 if (vertConcat == null) {
                     vertConcat = horzConcat;
                 } else {
-                    vertConcat = joinImageVert(vertConcat,horzConcat);
+                    vertConcat = joinImageVert(vertConcat,horzConcat, -1);
                 }
                 
             }
-            JFrame frame = new JFrame();
-            frame.getContentPane().setLayout(new FlowLayout());
-            frame.getContentPane().add(new JLabel(new ImageIcon(vertConcat)));
+            addText(vertConcat, "Hey Kamin", 200, 200, 30);
+            outputFrame outputView = new outputFrame(vertConcat);
            
-            frame.pack();
-            frame.setVisible(true);
 
         }
         
          
     }
     
-    public static BufferedImage joinImageHorz(BufferedImage img1,BufferedImage img2) {
+    public static BufferedImage joinImageHorz(BufferedImage img1,BufferedImage img2, int separation) {
 
         //do some calculate first
         int offset  = 5;
-        int wid = img1.getWidth()+img2.getWidth()+offset;
+        int wid = img1.getWidth()+img2.getWidth()+offset + separation;
         int height = Math.max(img1.getHeight(),img2.getHeight())+offset;
         //create a new buffer and draw two image into the new image
         BufferedImage newImage = new BufferedImage(wid,height, BufferedImage.TYPE_INT_ARGB);
@@ -205,15 +204,15 @@ public class LabelManager {
         //draw image
         g2.setColor(oldColor);
         g2.drawImage(img1, null, 0, 0);
-        g2.drawImage(img2, null, img1.getWidth()+offset, 0);
+        g2.drawImage(img2, null, img1.getWidth()+offset + separation, 0);
         g2.dispose();
         return newImage;
     }
     
-    public static BufferedImage joinImageVert(BufferedImage img1, BufferedImage img2){
+    public static BufferedImage joinImageVert(BufferedImage img1, BufferedImage img2, int separation){
         //do some calculate first
         int offset  = 5;
-        int height = img1.getHeight()+img2.getHeight()+offset;
+        int height = img1.getHeight()+img2.getHeight()+offset + separation;
         int wid = Math.max(img1.getWidth(),img2.getWidth())+offset;
         //create a new buffer and draw two image into the new image
         BufferedImage newImage = new BufferedImage(wid,height, BufferedImage.TYPE_INT_ARGB);
@@ -225,9 +224,20 @@ public class LabelManager {
         //draw image
         g2.setColor(oldColor);
         g2.drawImage(img1, null, 0, 0);
-        g2.drawImage(img2, null, 0, img1.getHeight()+offset);
+        g2.drawImage(img2, null, 0, img1.getHeight()+offset + separation);
         g2.dispose();
         return newImage;
+    }
+    
+    public static void addText(BufferedImage picture, String text, int posX, int posY, int textSize){
+        Graphics2D g2 = picture.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+        RenderingHints.VALUE_ANTIALIAS_ON);
+        Font font = new Font("Serif", Font.PLAIN, textSize);
+        g2.setFont(font);
+        g2.setColor(Color.BLACK);
+
+        g2.drawString(text, posX, posY); 
     }
 }
     
