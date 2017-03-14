@@ -156,11 +156,15 @@ public class LabelManager {
         System.out.println("We are gonna save");
         
         LabeledSample[] allSamples = officialImage.getSamples();
+        BufferedImage allConcat = null;
         for (int i = 0; i < allSamples.length; i++){
             LabeledSample aSample = allSamples[i];
             System.out.println(aSample.getSampleString());
             LabeledTime[] ourTimes = aSample.getTimes();
+            Arrays.sort(ourTimes);
+            
             BufferedImage vertConcat = null;
+            boolean first = true;
             for (int j = 0; j < ourTimes.length; j++){
                 Tube[] ourTubes = ourTimes[j].getTubes();
                 BufferedImage horzConcat = null;
@@ -172,18 +176,29 @@ public class LabelManager {
                         horzConcat = joinImageHorz(horzConcat,tube1.getImage(),10);
                     }                    
                 }
+                int time_in_minutes = Integer.parseInt(ourTimes[j].getTime())/60;
+                horzConcat = addText(horzConcat,Integer.toString(time_in_minutes)+" min",30,false,130);
                 if (vertConcat == null) {
                     vertConcat = horzConcat;
                 } else {
                     vertConcat = joinImageVert(vertConcat,horzConcat, -1);
                 }
-                
+                if (first){
+                    vertConcat = addText(vertConcat,ourTimes[j].getLabel(),50,true,100);
+                    first = false;
+                }
+          
             }
-            addText(vertConcat, "Hey Kamin", 200, 200, 30);
-            outputFrame outputView = new outputFrame(vertConcat);
-           
+            
+            if (allConcat == null) {
+                allConcat = vertConcat;
+            } else {
+                allConcat = joinImageHorz(allConcat, vertConcat, 20);
+            }
 
         }
+        outputFrame outputView = new outputFrame(allConcat);
+
         
          
     }
@@ -229,16 +244,38 @@ public class LabelManager {
         return newImage;
     }
     
-    public static void addText(BufferedImage picture, String text, int posX, int posY, int textSize){
-        Graphics2D g2 = picture.createGraphics();
+    public BufferedImage addText(BufferedImage picture, String text, int textSize, boolean above, int distance){
+      
+        int width = picture.getWidth();
+        int height = picture.getHeight();
+        int textWidth = Math.floorDiv(text.length() * textSize,2);
+       
+        if (above) {
+            height = height + distance;
+        } else {
+            width = width + distance;
+        }
+        BufferedImage newImage = new BufferedImage(width,height, BufferedImage.TYPE_INT_ARGB);   
+        Graphics2D g2 = newImage.createGraphics();
+        Color oldColor = g2.getColor();
+        g2.setPaint(Color.WHITE);
+        g2.fillRect(0,0, width,height);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
         RenderingHints.VALUE_ANTIALIAS_ON);
         Font font = new Font("Serif", Font.PLAIN, textSize);
         g2.setFont(font);
         g2.setColor(Color.BLACK);
-
-        g2.drawString(text, posX, posY); 
+        if (above){
+            g2.drawImage(picture,null,0,distance);
+            g2.drawString(text,width/2-textWidth,textSize);  
+        } else {
+            g2.drawImage(picture,null,0,0);
+            g2.drawString(text, width - distance, height/2-textSize);
+        }
+        return newImage;
     }
+    
+  
 }
     
 

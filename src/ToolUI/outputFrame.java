@@ -7,8 +7,14 @@ package ToolUI;
 
 import java.awt.FlowLayout;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -19,10 +25,13 @@ public class outputFrame extends javax.swing.JFrame {
     /**
      * Creates new form outputFrame
      */
+    BufferedImage toSave;
     public outputFrame(BufferedImage outputImage) {
         initComponents();
+        toSave = outputImage;
         jPanel1.setLayout(new FlowLayout());
         jPanel1.add(new JLabel(new ImageIcon(outputImage)));
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.pack();
         this.setVisible(true);
     }
@@ -57,6 +66,11 @@ public class outputFrame extends javax.swing.JFrame {
         imagePane.setViewportView(jPanel1);
 
         jButton1.setText("Save to file...");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         jButton2.setText("Reorder images...");
 
@@ -88,6 +102,25 @@ public class outputFrame extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+            JFileChooser chooser = new JFileChooser();
+            chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            File chosenFile = null;
+            int returnVal = chooser.showOpenDialog(this);
+            if (returnVal == JFileChooser.APPROVE_OPTION){
+                chosenFile = chooser.getSelectedFile();
+           }
+        try {
+            // retrieve image
+            ImageIO.write(toSave, "png", chosenFile);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,"Failed to save file " + chosenFile.getAbsolutePath());
+            return;
+        }
+        JOptionPane.showMessageDialog(this,"Success! Saved to " + chosenFile.getAbsolutePath());
+        this.dispose();
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
      * @param args the command line arguments

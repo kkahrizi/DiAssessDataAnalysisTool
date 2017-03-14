@@ -11,7 +11,7 @@ import java.util.ArrayList;
  *
  * @author kamin
  */
-public class LabeledTime {
+public class LabeledTime implements Comparable {
     Tube[] allTubes;
     String time;
     String label;
@@ -93,6 +93,12 @@ public class LabeledTime {
         return convertedSample;
     }
     
+    public int compareTo(Object o){
+        LabeledTime otherTime = (LabeledTime) o;
+        int otherTimeInSeconds = Integer.parseInt(otherTime.getTime());
+        int thisTimeInSeconds = Integer.parseInt(getTime());
+        return thisTimeInSeconds - otherTimeInSeconds;
+    }
     
     public void addTube(Tube tubeToAdd){
         if(allTubes.length == 0){
