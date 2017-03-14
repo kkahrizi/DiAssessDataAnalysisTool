@@ -4,6 +4,9 @@
  * and open the template in the editor.
  */
 package ToolUI;
+import ToolUI.ImagePair;
+import ToolUI.LabelManager;
+import ToolUI.TubeLabeler;
 import java.io.*;
 import javax.swing.*;
 import javax.imageio.*;

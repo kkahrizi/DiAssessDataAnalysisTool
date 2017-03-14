@@ -184,7 +184,7 @@ public class LabelManager {
                     vertConcat = joinImageVert(vertConcat,horzConcat, -1);
                 }
                 if (first){
-                    vertConcat = addText(vertConcat,ourTimes[j].getLabel(),50,true,100);
+                    vertConcat = addText(vertConcat,ourTimes[j].getLabel(),40,true,100);
                     first = false;
                 }
           
@@ -248,7 +248,7 @@ public class LabelManager {
       
         int width = picture.getWidth();
         int height = picture.getHeight();
-        int textWidth = Math.floorDiv(text.length() * textSize,2);
+        int textWidth = Math.floorDiv(text.length() * textSize,3);
        
         if (above) {
             height = height + distance;
