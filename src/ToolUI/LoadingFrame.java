@@ -241,7 +241,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
         double minimumDifference = 3000;
         int[] minima = findLocalMinima(filtered, 80);
         double maxValue = findMax(filtered);
-        System.out.println("For " + source);
+        //System.out.println("For " + source);
         
         ArrayList<Integer> filteredMinima = new ArrayList();
         for (int i = 0; i < minima.length; i++){
@@ -249,7 +249,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
             if(minima[i] > hardMin && minima[i] < hardMax && (maxValue-filtered[minima[i]])>minimumDifference){
                 filteredMinima.add(minima[i]);
             } else {
-                System.out.println("Caught one!" + Integer.toString(minima[i]));
+            //    System.out.println("Caught one!" + Integer.toString(minima[i]));
             }
         }
         
@@ -264,8 +264,8 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
         }
         
         //Plot2DPanel plot = plotGraph(source,xAxis,yAxis);
-        Plot2DPanel plot = plotGraph(source + " Hanning ", xAxis, filtered);
-        plot.addStaircasePlot("Location" , minimaX,minimaY);
+       // Plot2DPanel plot = plotGraph(source + " Hanning ", xAxis, filtered);
+        //plot.addStaircasePlot("Location" , minimaX,minimaY);
         return finalMinima;
         
         

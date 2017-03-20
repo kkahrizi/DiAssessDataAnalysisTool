@@ -22,3 +22,8 @@ Installation Instructions:
 3. Run using dist/DiAssessDataAnalysisTool.jar
 
 Make sure you have java installed, and give the file execution privileges.
+
+
+Version 1.01 Updates:
+Found a situation where first tube was not detected due to image deformity. Increased hamming window size to 61 pixels to compensate for deformity, which seems to have resolved issue.
+
