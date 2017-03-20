@@ -76,7 +76,7 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jLabel1.setFont(new java.awt.Font("Arial", 1, 24)); // NOI18N
-        jLabel1.setText("DiAssess Data Analysis Tool 1.0");
+        jLabel1.setText("DiAssess Data Analysis Tool 1.01");
 
         ThermocyclerDataButton.setText("Thermocycler Data (In dev.)");
         ThermocyclerDataButton.addActionListener(new java.awt.event.ActionListener() {
