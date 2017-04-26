@@ -15,6 +15,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import org.math.plot.utils.Array;
 
 /**
  *
@@ -108,8 +109,15 @@ public class outputFrame extends javax.swing.JFrame {
             chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
             File chosenFile = null;
             int returnVal = chooser.showOpenDialog(this);
-            if (returnVal == JFileChooser.APPROVE_OPTION){
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
                 chosenFile = chooser.getSelectedFile();
+                String filePath = chosenFile.getAbsolutePath();
+                System.out.println(filePath);
+                if (!(filePath.endsWith(".png") || filePath.endsWith(".jpeg") || filePath.endsWith(".jpg"))) {
+                    
+                    chosenFile = new File(filePath + ".png");
+                
+                }
            }
         try {
             // retrieve image

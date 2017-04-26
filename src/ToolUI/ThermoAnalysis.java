@@ -11,7 +11,7 @@ import javax.swing.*;
  * @author kamin
  */
 public class ThermoAnalysis extends javax.swing.JFrame {
-
+    private File chosenFolder;
     /**
      * Creates new form ThermoAnalysis
      */
@@ -54,6 +54,11 @@ public class ThermoAnalysis extends javax.swing.JFrame {
         });
 
         fileLoader.setText("Load");
+        fileLoader.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fileLoaderActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -92,17 +97,29 @@ public class ThermoAnalysis extends javax.swing.JFrame {
     private void fileSelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSelectorActionPerformed
             JFileChooser chooser = new JFileChooser();
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-
+            
             int returnVal = chooser.showOpenDialog(this);
             if (returnVal == JFileChooser.APPROVE_OPTION){
-                File file = chooser.getSelectedFile();
-                fileNameField.setText(file.getAbsolutePath());
+                chosenFolder = chooser.getSelectedFile();
+                fileNameField.setText(chosenFolder.getAbsolutePath());
             }
     }//GEN-LAST:event_fileSelectorActionPerformed
 
     private void fileNameFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileNameFieldActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_fileNameFieldActionPerformed
+
+    private void fileLoaderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileLoaderActionPerformed
+        // TODO add your handling code here:
+        if (chosenFolder == null){
+            JOptionPane.showMessageDialog(this,"Please select a folder to load");
+        } else {
+            ThermoLoadingFrame loadData = new ThermoLoadingFrame(chosenFolder);
+            loadData.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+            loadData.setVisible(true);
+        }
+        
+    }//GEN-LAST:event_fileLoaderActionPerformed
 
     /**
      * @param args the command line arguments

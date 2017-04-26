@@ -30,7 +30,7 @@ import javax.swing.Timer;
  *
  * @author kamin
  */
-public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
+public class TubeLoadingFrame extends javax.swing.JFrame implements FileFilter {
     public String currentText;
     public File passedFolder;
     public int organize;
@@ -42,7 +42,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
     /**
      * Creates new form loadingFrame
      */
-    public LoadingFrame(File folder) {
+    public TubeLoadingFrame(File folder) {
         setUndecorated(true);
         initComponents();
         this.getRootPane().setDefaultButton(waitContinueButton);
@@ -98,7 +98,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
             File[] allFiles = subFolder.listFiles();
             ArrayList<File> filteredFiles = new ArrayList();
             for(int i = 0; i < allFiles.length; i++){
-                if (!allFiles[i].getAbsolutePath().contains("Thumbs")){
+                if (!allFiles[i].getAbsolutePath().contains("Thumbs") && !allFiles[i].getAbsolutePath().contains("desktop") && allFiles[i].getName().contains("jpg")){
                     filteredFiles.add(allFiles[i]);
                 }                    
             }
@@ -172,6 +172,9 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
                 if (isNewRack){
                     uniqueRacks.add(rackNumber);
                 }
+                if(image == null){
+                    System.out.println("Found null image at rack " + Integer.toString(thisImage.getRackNumber()) + " at time " + thisImage.getTime());
+                }
                 int width = image.getWidth();
                 int height = image.getHeight();
                 int[][] blueChannel = new int[width][height];
@@ -184,7 +187,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
                         ", Time: " + thisImage.getTime());
                 int tubeLocationsY = analyzeImageY(blueChannel, "Rack: " + thisImage.getRackNumber() + 
                         ", Time: " + thisImage.getTime());
-                TubeLabeler myLabeler = new TubeLabeler(tubeLocationsX,tubeLocationsY,image,thisImage.getRackNumber(),thisImage.getTime());
+                TubeLabeler myLabeler = new TubeLabeler(tubeLocationsX,tubeLocationsY,image,thisImage.getRackNumber(),thisImage.getTime(),myManager);
                 
                 
                 if (isNewRack) {
@@ -235,11 +238,11 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
             yAxis[x] = collapsedX[x];
         }
         
-        double[] filtered = hanningWindow(yAxis,61);
+        double[] filtered = hanningWindow(yAxis,51);
         int hardMin = 5;
         int hardMax = 2500;
         double minimumDifference = 3000;
-        int[] minima = findLocalMinima(filtered, 80);
+        int[] minima = findLocalMinima(filtered, 60);
         double maxValue = findMax(filtered);
         //System.out.println("For " + source);
         
@@ -264,8 +267,8 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
         }
         
         //Plot2DPanel plot = plotGraph(source,xAxis,yAxis);
-       // Plot2DPanel plot = plotGraph(source + " Hanning ", xAxis, filtered);
-        //plot.addStaircasePlot("Location" , minimaX,minimaY);
+//          Plot2DPanel plot = plotGraph(source + " Hanning ", xAxis, filtered);
+//          plot.addStaircasePlot("Location" , minimaX,minimaY);
         return finalMinima;
         
         
@@ -390,13 +393,14 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
         double[] filtered = hanningWindow(yAxis,51);
         
         
-        int hardMin = 280;
-        int hardMax = 470;
-        int[] minima = findLocalMinima(filtered, 100);
+        int hardMin = 400;
+        int hardMax = 600;
+        int[] minima = findLocalMinima(filtered, 50);
         ArrayList<Integer> filteredMinima = new ArrayList();
         for (int i = 0; i < minima.length; i++){
             if(minima[i] > hardMin && minima[i] < hardMax){
                 filteredMinima.add(minima[i]);
+              //System.out.println("Y_minima " + Integer.toString(minima[i]));
             }
         }
        
@@ -416,7 +420,7 @@ public class LoadingFrame extends javax.swing.JFrame implements FileFilter {
             finalMinima[i] = filteredMinima.get(i);
         }
         //Plot2DPanel plot = plotGraph(source,xAxis, filtered);
-       // plot.addStaircasePlot("Location",minimaX,minimaY);
+        //plot.addStaircasePlot("Location",minimaX,minimaY);
         int yCoord = 0;
         try {
             yCoord = finalMinima[0];           

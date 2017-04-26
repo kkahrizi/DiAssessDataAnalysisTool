@@ -28,8 +28,10 @@ public class LabelManager {
     public Rack[] allRacks;
     public LabeledSample[] allSamples;
     private File outputFolder;
+    public ArrayList<String> allLabelsSoFar;
     
     public LabelManager(File outputLocation){
+        allLabelsSoFar = new ArrayList<String>();
         numberOfOpenLabelingFrames = 0;
         outputFolder = outputLocation;
         officialImage = new LabeledImage();
@@ -152,8 +154,32 @@ public class LabelManager {
         
     }
     
+    public void consolidateImage(LabeledImage theImage){
+        LabeledSample[] allSamples = officialImage.getSamples();
+        LabeledImage newOfficial = new LabeledImage();
+        for (int i = 0; i < allSamples.length; i++){
+            LabeledSample thisSample = allSamples[i];
+            for (int j = i+1; j < allSamples.length; j++){
+                LabeledSample thatSample = allSamples[j];
+                if (thisSample != null && thatSample != null && thisSample.getSampleString().equalsIgnoreCase(thatSample.getSampleString())){
+                    thisSample.mergeSample(thatSample);  
+                    allSamples[j] = null;
+                }
+            }
+            if(thisSample!=null){
+                newOfficial.addSample(thisSample);
+            }
+            
+        }
+        officialImage = newOfficial;
+        
+    }
+    
     public void saveImages(){
         System.out.println("We are gonna save");
+        
+        consolidateImage(officialImage);
+        
         
         LabeledSample[] allSamples = officialImage.getSamples();
         BufferedImage allConcat = null;
@@ -273,6 +299,36 @@ public class LabelManager {
             g2.drawString(text, width - distance, height/2-textSize);
         }
         return newImage;
+    }
+    
+    
+    //Adds a label when a FocusComboBox loses focus
+    
+    public void addALabel(String newLabel){
+        allLabelsSoFar.add(newLabel);
+        for (int i = 0; i < allLabelsSoFar.size(); i++){
+            String thisLabel = allLabelsSoFar.get(i);
+            for (int j = i + 1; j < allLabelsSoFar.size(); j++){
+                String thatLabel = allLabelsSoFar.get(j);
+                if(thisLabel.equalsIgnoreCase(thatLabel)){
+                    allLabelsSoFar.remove(j);
+                }
+            }
+        }
+    }
+    
+    public void removeALabel(String thisLabel){
+        for (int i = 0; i < allLabelsSoFar.size(); i++){
+            if(allLabelsSoFar.get(i).equalsIgnoreCase(thisLabel)){
+                allLabelsSoFar.remove(i);
+            }
+        }
+    }
+    
+    
+    public String[] getOtherLabels(){
+        String[] options = allLabelsSoFar.toArray(new String[allLabelsSoFar.size()]);
+        return options;
     }
     
   

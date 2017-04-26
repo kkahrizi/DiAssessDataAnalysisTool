@@ -27,3 +27,7 @@ Make sure you have java installed, and give the file execution privileges.
 Version 1.01 Updates:
 Found a situation where first tube was not detected due to image deformity. Increased hamming window size to 61 pixels to compensate for deformity, which seems to have resolved issue.
 
+Version 1.02 Updates:
+Made UI for analyzing thermocycler data. 
+Fixed bug where y-position of tubes was sometimes not being detected by shifting the range of acceptable values for y-position to [400, 600] .
+Fixed bug where midpoint of two tubes was being called a tube since sum of two halves had same signal as one whole tube. Fixed by increasing width of local minima filter from 50 to 60 pixels.

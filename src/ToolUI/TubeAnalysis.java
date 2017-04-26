@@ -102,6 +102,8 @@ public class TubeAnalysis extends javax.swing.JFrame {
 
     private void fileSelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSelectorActionPerformed
             JFileChooser chooser = new JFileChooser();
+            File workingDirectory = new File(System.getProperty("user.dir"));
+            chooser.setCurrentDirectory(workingDirectory);
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
             int returnVal = chooser.showOpenDialog(this);
@@ -121,7 +123,7 @@ public class TubeAnalysis extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this,"Please select a folder to load");
             }
             else {
-                LoadingFrame loadData = new LoadingFrame(chosenFolder);
+                TubeLoadingFrame loadData = new TubeLoadingFrame(chosenFolder);
                 loadData.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
                 loadData.setVisible(true);
                 

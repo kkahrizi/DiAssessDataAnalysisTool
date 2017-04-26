@@ -29,6 +29,23 @@ public class LabeledSample {
         timeStrings = new String[0];
     }
     
+    
+    public void mergeSample(LabeledSample otherSample){
+        if(otherSample.getSampleString().equals(sampleString)){
+            LabeledTime[] thoseTimes = otherSample.getTimes();
+            for (int thisTimeIndex = 0; thisTimeIndex < myTimes.length; thisTimeIndex++){
+                LabeledTime thisTime = myTimes[thisTimeIndex];
+                for (int thatTimeIndex = 0; thatTimeIndex < thoseTimes.length; thatTimeIndex++){
+                    LabeledTime thatTime = thoseTimes[thatTimeIndex];
+                    if (thisTime.getTime().equals(thatTime.getTime())){
+                        thisTime.mergeTime(thatTime);
+                    }
+                }
+            }
+        }
+        
+    }
+    
     public LabeledTime[] getTimes(){
         return myTimes;
     }

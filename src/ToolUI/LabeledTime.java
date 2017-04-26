@@ -29,6 +29,17 @@ public class LabeledTime implements Comparable {
         
     }
     
+    public void mergeTime(LabeledTime otherTime){
+        if (otherTime.getTime().equalsIgnoreCase(time) && otherTime.hasLabel() 
+                && this.hasLabel() && otherTime.getLabel().equalsIgnoreCase(this.getLabel())){
+            Tube[] thoseTubes = otherTime.getTubes();
+            for (int i = 0; i < thoseTubes.length; i++){
+                this.addTube(thoseTubes[i]);
+            }
+            
+        }
+    }
+    
     public boolean hasLabel(){
         if (label == null){
             return false;

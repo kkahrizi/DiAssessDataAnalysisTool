@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import javax.swing.GroupLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -25,17 +26,19 @@ public class TubeLabeler extends javax.swing.JFrame {
     LabelManager theManager;
     JLabel[] allCroppedImages;
     FocusTextField[] textArray;
+    FocusComboBox[] comboxArray;
+    String[] allCurrentRacks;
     ImagePair[] croppedImages;
-    String sameToken;
-    String firstStringToken;
+    public static final String SAME_TOKEN = "Same as tube to the left";
+    public static final String FIRST_STRING_TOKEN = "Enter a label for this tube";
     /**
      * Creates new form TubeLabeler
      */
-    public TubeLabeler(int[] tubeLocationsX, int tubeLocationY, BufferedImage image, int rackNumber, String time) {
+    public TubeLabeler(int[] tubeLocationsX, int tubeLocationY, BufferedImage image, int rackNumber, String time, LabelManager myManager) {
+        theManager = myManager;
         initComponents();
         this.getRootPane().setDefaultButton(jButton1);
-        sameToken = "Same as tube to the left";
-        firstStringToken = "Enter a label for this tube";
+        
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         int yRange = 70;
                  
@@ -49,7 +52,7 @@ public class TubeLabeler extends javax.swing.JFrame {
         myLayout.setAutoCreateContainerGaps(true);
 
 
-
+        comboxArray = new FocusComboBox[numTubes];
         textArray = new FocusTextField[numTubes];
         allCroppedImages = new JLabel[numTubes];
 
@@ -81,17 +84,22 @@ public class TubeLabeler extends javax.swing.JFrame {
             textArray[x] = new FocusTextField();
 
             if(x != 0){
-                textArray[x].setText(sameToken);
+                textArray[x].setText(SAME_TOKEN);
+                comboxArray[x] = new FocusComboBox(theManager,SAME_TOKEN);
+
             } else {
-                textArray[x].setText(firstStringToken);
+                textArray[x].setText(FIRST_STRING_TOKEN);
+                comboxArray[x] = new FocusComboBox(theManager,FIRST_STRING_TOKEN);
             }
             allCroppedImages[x] = new JLabel(new ImageIcon(crop));
             horGroup.addGroup(myLayout.createParallelGroup()
                     .addComponent(allCroppedImages[x])
-                    .addComponent(textArray[x]));
+                    //.addComponent(textArray[x]));
+                    .addComponent(comboxArray[x]));
 
             pictureGroup.addComponent(allCroppedImages[x]);
-            textGroup.addComponent(textArray[x]);
+            textGroup.addComponent(comboxArray[x]);
+            //textGroup.addComponent(textArray[x]);
         }
 
         myLayout.setHorizontalGroup(horGroup);
@@ -122,15 +130,20 @@ public class TubeLabeler extends javax.swing.JFrame {
         return myTubes;
     }
     
-    public JTextField[] getLabels(){
-        return textArray;
+   // public JTextField[] getLabels(){
+   //     return textArray;
+   // }
+    
+    public FocusComboBox[] getLabels(){
+        return comboxArray;
     }
     
     public JButton getButton(){
         return jButton1;
     }
-     
+
     
+
      static class FocusTextField extends JTextField {
     {
         addFocusListener(new FocusListener() {
@@ -216,12 +229,17 @@ public class TubeLabeler extends javax.swing.JFrame {
         
         newTime.setRack(rackNumber);
         newTime.setTime(time);
-        newTime.label(textArray[0].getText());
+        //newTime.label(textArray[0].getText());
+        newTime.label(((JTextField)comboxArray[0].getEditor().getEditorComponent()).getText());
         ArrayList<LabeledTime> allTimesInThisRack = new ArrayList<LabeledTime>();
-        System.out.println("There are " + textArray.length + " tubes in this rack");
-        for (int i = 0; i < textArray.length; i++) {
-            String thisTubeName = textArray[i].getText();
-            if (thisTubeName.equalsIgnoreCase(sameToken)) {
+        System.out.println("There are " + comboxArray.length + " tubes in this rack");
+       // for (int i = 0; i < textArray.length; i++) {
+       //String thisTubeName = textArray[i].getText();
+
+        for (int i = 0; i < comboxArray.length; i++ ){    
+            String thisTubeName = (String)((JTextField)comboxArray[i].getEditor().getEditorComponent()).getText();
+            System.out.println(thisTubeName);
+            if (thisTubeName.equalsIgnoreCase(SAME_TOKEN)) {
                 thisTubeName = previousTubeName;
             } else if (!previousTubeName.equals("")) {
                 //store the previous time and start a new time
