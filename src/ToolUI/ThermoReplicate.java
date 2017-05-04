@@ -51,6 +51,14 @@ public class ThermoReplicate implements Comparable {
         sampleName = label;
     }
     
+    public double[] getMinutes(double secondsPerCycle){
+        double[] timeArray = new double[signal.length];
+        for (int i = 0; i < timeArray.length; i++){
+            timeArray[i] = ((double) i * secondsPerCycle ) / 60;
+        }
+        return timeArray;
+    }
+    
     public String getLabel(){
         return sampleName;
     }
@@ -87,7 +95,7 @@ public class ThermoReplicate implements Comparable {
         signal = rfuData;
     }
 
-    public int getMidpointTTR(double secondsPerCycle){
+    public double getMidpointTTR(double secondsPerCycle){
         int startCycle = 10;
         int endCycle = 16;
         double baseValue = getBaseline(startCycle,endCycle);
@@ -96,10 +104,26 @@ public class ThermoReplicate implements Comparable {
         for (int i = 0; i < signal.length; i++){
             if (signal[i] > halfWay){
                 TTR = i*secondsPerCycle/60.0;
+                return TTR;
+            }
+        }
+        TTR =  (signal.length-1)*secondsPerCycle/60.0;
+        return TTR;
+    }
+    
+    public int getMidpointTTRIndex(){
+        int startCycle = 10;
+        int endCycle = 16;
+        double baseValue = getBaseline(startCycle,endCycle);
+        double maxValue = getMax();
+        double halfWay = (baseValue + maxValue)/2;
+        for (int i = 0; i < signal.length; i++){
+            if (signal[i] > halfWay){
+                TTR = i;
                 return i;
             }
         }
-        TTR =  signal.length*secondsPerCycle/60.0;
+        TTR =  signal.length-1;
         return signal.length;
     }
         

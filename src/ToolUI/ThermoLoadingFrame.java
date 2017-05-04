@@ -4,9 +4,16 @@
  * and open the template in the editor.
  */
 package ToolUI;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.io.*;
 import javax.swing.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import org.math.plot.*;
@@ -31,8 +38,12 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final String SAMPLE_FILE_TOKEN = "Quantification Summary_0.csv";
     public final String ROOT_SPLITTER = " - ";
     public final int ORGANIZE = 2;
-
+    public final int PLOTWIDTH=500;
+    public final int PLOTHEIGHT=600;
+    public final int PLOTSPERROW=4;
+    public final String[] AXISLABELS = {"Minutes", "RFU"};
     public boolean useMidpointMethod;
+    public final int TTRLINELENGTH = 10;
     public ArrayList<SignalSampleCombo> allCombos;
     public LabelManager myManager;
     /**
@@ -195,7 +206,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         
     
     //
-    public void makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, double secondsPerCycle, boolean labelTTR){
+    public void makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, 
+            double secondsPerCycle, boolean labelTTR){
+        ArrayList<TTRTuple> TTRData = new ArrayList<TTRTuple>();
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
         File signalFile = thisCombo.getSignal();
         File sampleFile = thisCombo.getSample();
@@ -288,24 +301,144 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
            allData = organizeReplicates(allUnlabeledReplicates);
         }
         
+       BufferedImage allPlots = null;
+       BufferedImage thisRowOfPlots = null;
+
         for (int i = 0; i < allData.size(); i++){     
+        
             ThermoSample thisSample = allData.get(i);
+            String label = thisSample.getLabel();
             ArrayList<ThermoReplicate> allReplicates = thisSample.getReplicates();
             Plot2DPanel thisPanel = null;
             ArrayList<double[]> toPlot = new ArrayList<double[]>();
             
             for (int j = 0; j < allReplicates.size(); j++){
                 toPlot.add(allReplicates.get(j).getSignal());
-                int TTR = 0;
+                double TTR = 0;
                 if(isMidpoint){
                     TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle);
                 }
+                TTRData.add(new TTRTuple(label,TTR));
             }
-            plotGraph(thisSample.getLabel(),toPlot,true,thisPanel);
+            BufferedImage plotImage = plotGraph(thisSample.getLabel(),toPlot,
+                    true,thisPanel, allReplicates, secondsPerCycle, labelTTR );
+            BufferedImage labeledImage = addText(plotImage, label, 40, true, 0);
+           
+            if ( (i + 1)% PLOTSPERROW == 0 || i == allData.size()-1){
+                if (thisRowOfPlots == null){
+                    thisRowOfPlots = labeledImage;
+                } else {
+                    if (allPlots == null ){
+                        thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage,0);
+                        allPlots = deepCopy(thisRowOfPlots);
+                        thisRowOfPlots = null;
+                    } else {
+                        thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage,0);
+                        allPlots = joinImageVert(allPlots,thisRowOfPlots,0);
+                        thisRowOfPlots = null;
+                    }
+                }
+            } else {
+                if (thisRowOfPlots == null){
+                    thisRowOfPlots = labeledImage;
+                } else {
+                    thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage,0);
+                }
+                
+            }
         }
-        
-        
+
+        OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData);
     }
+    
+    static BufferedImage deepCopy(BufferedImage bi) {
+        ColorModel cm = bi.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = bi.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+    }
+
+   
+     public static BufferedImage joinImageHorz(BufferedImage img1,BufferedImage img2, int separation) {
+
+        //do some calculate first
+        int offset  = 5;
+        int wid = img1.getWidth()+img2.getWidth()+offset + separation;
+        int height = Math.max(img1.getHeight(),img2.getHeight())+offset;
+        //create a new buffer and draw two image into the new image
+        BufferedImage newImage = new BufferedImage(wid,height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = newImage.createGraphics();
+        Color oldColor = g2.getColor();
+        //fill background
+        g2.setPaint(Color.WHITE);
+        g2.fillRect(0, 0, wid, height);
+        //draw image
+        g2.setColor(oldColor);
+        g2.drawImage(img1, null, 0, 0);
+        g2.drawImage(img2, null, img1.getWidth()+offset + separation, 0);
+        g2.dispose();
+        return newImage;
+    }
+    
+    public static BufferedImage joinImageVert(BufferedImage img1, BufferedImage img2, int separation){
+        //do some calculate first
+        int offset  = 5;
+        int height = img1.getHeight()+img2.getHeight()+offset + separation;
+        int wid = Math.max(img1.getWidth(),img2.getWidth())+offset;
+        //create a new buffer and draw two image into the new image
+        BufferedImage newImage = new BufferedImage(wid,height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = newImage.createGraphics();
+        Color oldColor = g2.getColor();
+        //fill background
+        g2.setPaint(Color.WHITE);
+        g2.fillRect(0, 0, wid, height);
+        //draw image
+        g2.setColor(oldColor);
+        g2.drawImage(img1, null, 0, 0);
+        g2.drawImage(img2, null, 0, img1.getHeight()+offset + separation);
+        g2.dispose();
+        return newImage;
+    }
+    
+    
+    public BufferedImage addText(BufferedImage picture, String text, int textSize, boolean above, int distance){
+        int width = picture.getWidth();
+        int height = picture.getHeight();
+        int textWidth = Math.floorDiv(text.length() * textSize,3);
+       
+        if (above) {
+            height = height + distance;
+        } else {
+            width = width + distance;
+        }
+        BufferedImage newImage = new BufferedImage(width,height, BufferedImage.TYPE_INT_ARGB);   
+        Graphics2D g2 = newImage.createGraphics();
+        Color oldColor = g2.getColor();
+        g2.setPaint(Color.WHITE);
+        g2.fillRect(0,0, width,height);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+        RenderingHints.VALUE_ANTIALIAS_ON);
+        Font font = new Font("Serif", Font.PLAIN, textSize);
+        g2.setFont(font);
+        g2.setColor(Color.BLACK);
+        if (above){
+            g2.drawImage(picture,null,0,distance);
+            g2.drawString(text,width/2-textWidth,textSize);  
+        } else {
+            g2.drawImage(picture,null,0,0);
+            g2.drawString(text, width - distance, height/2-textSize);
+        }
+        return newImage;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     public ArrayList<ThermoSample> organizeReplicates(ArrayList<ThermoReplicate> theseReplicates) {
         Collections.sort(theseReplicates);
@@ -363,35 +496,71 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     
     
     
-    public Plot2DPanel plotGraph(String source, ArrayList<double[]> yValues, boolean newPlot, Plot2DPanel toPlot){
+    public BufferedImage plotGraph(String source, ArrayList<double[]> yValues, 
+            boolean newPlot, Plot2DPanel toPlot, ArrayList<ThermoReplicate> allReplicates, 
+            double secondsPerCycle, boolean plotTTR){
+        
+              
         Plot2DPanel panel = null;
+        JFrame frame = null;
         if(newPlot){
-            JFrame frame = new JFrame(source);
+            frame = new JFrame(source);
             panel = new Plot2DPanel();
             frame.setContentPane(panel);
-            frame.setSize(500,600);
+            frame.setSize(PLOTWIDTH,PLOTHEIGHT);
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frame.setVisible(true);
         } else {
             panel = toPlot;
         }
-        for (int plotIndex = 0; plotIndex < yValues.size(); plotIndex++){
-            double[] yValueArray = yValues.get(plotIndex);
-            double[] xValueArray = new double[yValueArray.length];
-            for (int i = 0; i < yValueArray.length; i++){
-                xValueArray[i] = i;
+        double maxXvalue = 0;
+        for (int plotIndex = 0; plotIndex < allReplicates.size(); plotIndex++){
+            ThermoReplicate plotReplicate = allReplicates.get(plotIndex);
+            double [] yValueArray = plotReplicate.getSignal();
+            double [] xValueArray = plotReplicate.getMinutes(secondsPerCycle);
+            if(plotTTR){
+                int TTR = plotReplicate.getMidpointTTRIndex();
+                double[] TTRXValues = new double[TTRLINELENGTH];
+                double[] TTRYValues = new double[TTRLINELENGTH];
+                double yValueAtTTR = yValueArray[TTR];
+                for (int TTRPoint = 0; TTRPoint < TTRLINELENGTH; TTRPoint++ ){
+                    TTRXValues[TTRPoint] = xValueArray[TTR-(int)Math.round(TTRLINELENGTH/2.0)+TTRPoint];
+                    TTRYValues[TTRPoint] = yValueAtTTR;
+                }
+                panel.addLinePlot(source, Color.red, TTRXValues, TTRYValues);
             }
-            panel.addLinePlot(source, xValueArray, yValueArray);
-            
+            if (maxXvalue < xValueArray[xValueArray.length-1]){
+                maxXvalue = xValueArray[xValueArray.length-1];
+            }
+            panel.addLinePlot(source, Color.blue, xValueArray, yValueArray);
         }
+//        for (int plotIndex = 0; plotIndex < yValues.size(); plotIndex++){
+//            double[] yValueArray = yValues.get(plotIndex);
+//            double[] xValueArray = new double[yValueArray.length];
+//            for (int i = 0; i < yValueArray.length; i++){
+//                xValueArray[i] = i;
+//            }
+//            
+//            panel.addLinePlot(source, Color.blue, yValueArray);
+//            
+//        }
+        panel.setFixedBounds(0, 0, Math.round(maxXvalue/10.0)*10);
+        panel.setAxisLabels(AXISLABELS);
+        panel.removePlotToolBar();
 //        for (int j =)
 //        double[] xAxis = new double[yAxis.length];
 //        for (int i = 1; i < xAxis.length; i++){
 //            xAxis[i] = i;
 //        }
 //        panel.addLinePlot(source,xAxis, yAxis);
-//        
-        return panel;
+        BufferedImage plotImage = new BufferedImage(PLOTWIDTH, PLOTHEIGHT,
+                                    BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = plotImage.createGraphics();
+        panel.paint(g2);
+        if (frame != null){
+            frame.dispose();
+        }
+        return plotImage;
     }
     
    
@@ -520,11 +689,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     .addComponent(jScrollPane1)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 365, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 213, Short.MAX_VALUE)
                         .addComponent(waitContinueButton, javax.swing.GroupLayout.PREFERRED_SIZE, 402, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(21, 21, 21)
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel2)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(29, 29, 29)
@@ -535,9 +704,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                         .addComponent(labelTTRButton, javax.swing.GroupLayout.PREFERRED_SIZE, 61, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(43, 43, 43)
                         .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(52, 52, 52)
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 71, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(midpointButton)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(inflectionButton)))

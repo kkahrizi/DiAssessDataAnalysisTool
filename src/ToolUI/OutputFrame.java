@@ -9,26 +9,42 @@ import java.awt.FlowLayout;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import org.math.plot.utils.Array;
 
 /**
  *
  * @author kamin
  */
-public class outputFrame extends javax.swing.JFrame {
+public class OutputFrame extends javax.swing.JFrame {
 
     /**
-     * Creates new form outputFrame
+     * Creates new form OutputFrame
      */
     BufferedImage toSave;
-    public outputFrame(BufferedImage outputImage) {
+    public ArrayList<TTRTuple> TTRDat;
+    public final static int THERMOCYCLER = 0;
+    public final static int PCRTUBES = 1;
+    public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData) {
         initComponents();
+        if(source == THERMOCYCLER){
+            jButton2.setText("Save plots to .png");
+            jButton2.setText("Save TTR data to .csv");
+            TTRDat = TTRData;
+            jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformedThermo(evt);
+            }
+        });
+        } else if (source == PCRTUBES) {
+            jButton2.setText("Reorder images");
+        }
         toSave = outputImage;
         jPanel1.setLayout(new FlowLayout());
         jPanel1.add(new JLabel(new ImageIcon(outputImage)));
@@ -85,7 +101,7 @@ public class outputFrame extends javax.swing.JFrame {
                     .addComponent(imagePane)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 499, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 73, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 487, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
@@ -104,6 +120,53 @@ public class outputFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jButton2ActionPerformedThermo(java.awt.event.ActionEvent evt) {
+        JFileChooser chooser = new JFileChooser();
+            chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            File chosenFile = null;
+            int returnVal = chooser.showOpenDialog(this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                chosenFile = chooser.getSelectedFile();
+                String filePath = chosenFile.getAbsolutePath();
+                System.out.println(filePath);
+                if (!(filePath.endsWith(".csv"))) {
+                    
+                    chosenFile = new File(filePath + ".csv");
+                
+                }
+           }
+        try {
+            // Write TTR data
+            writeTTRData(chosenFile,TTRDat);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,"Failed to save file " + chosenFile.getAbsolutePath());
+            return;
+        }
+        JOptionPane.showMessageDialog(this,"Success! Saved to " + chosenFile.getAbsolutePath());
+    }
+    
+    public void writeTTRData (File toWrite, ArrayList<TTRTuple> data) throws IOException {
+        PrintWriter writer = new PrintWriter(toWrite);
+        StringBuilder sb = new StringBuilder();
+        String[] rows = new String[data.size()];
+        int index = 0;
+        while (!data.isEmpty()){
+            TTRTuple thisPair = data.remove(0);
+            String thisLabel = thisPair.Label;
+            Double thisTime = thisPair.TTR;
+            rows[index] = thisLabel + "," + Double.toString(thisTime);
+            index++;
+        }
+        
+        for (int i = 0; i < rows.length; i++){
+            sb.append(rows[i]);
+            sb.append('\n');
+        }     
+        writer.write(sb.toString());
+        writer.close();
+        
+    }
+    
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
             JFileChooser chooser = new JFileChooser();
             chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -127,7 +190,6 @@ public class outputFrame extends javax.swing.JFrame {
             return;
         }
         JOptionPane.showMessageDialog(this,"Success! Saved to " + chosenFile.getAbsolutePath());
-        this.dispose();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**

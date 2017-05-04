@@ -223,7 +223,7 @@ public class LabelManager {
             }
 
         }
-        outputFrame outputView = new outputFrame(allConcat);
+        OutputFrame outputView = new OutputFrame(allConcat, OutputFrame.PCRTUBES, null);
 
         
          
