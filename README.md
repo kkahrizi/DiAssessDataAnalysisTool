@@ -2,18 +2,29 @@
 
 A tool for analyzing data at DiAssess.
 
-Version 1.0
-Only functional utility: Compilation of PCR Tubes
-- Usage:
-1. Downlaod the entire folder of timelapse images to your computer.
+Version 2.0
+Two utilities: Compilation of PCR Tubes, Analysis of Thermocycler Data
+- PCR Tube Compilation Usage:
+1. Download the entire folder of timelapse images to your computer.
+	1a. All folders must have the same number of images.
+	2a. All image names must be associated with the correct time. (i.e. "0000.jpg", "1200.jpg")
 2. Run DiAssessDataAnalysisTool for Analaysis of PCR Tubes. 
 3. Navigate to the appropriate downloaded folder of images.
 4. Label PCR tubes following onscreen cues.
 5. Save compiled image to a location of your choice (include .png in image name to ensure your computer correctly interprets the file as an image)
 
-Version 1.0 Limitations:
-1. All folder must have the same number of images.
-2. All image names must be associated with the correct time. (i.e. "0000.jpg", "1200.jpg")
+- Thermocycler Analysis Usage:
+1. Export thermocycler data as ".csv" using Biorad CFX Connect software. 
+2. Save set of .csv files to a folder on your computer. 
+	2a. Both RFU data "<EXPERIMENT NAME> - Quantification Amplification Results_SYBR.csv" and
+	sample data "<EXPERIMENT NAME> - Quantification Summary_0.csv" must be contained within folder.
+3. Run DiAssessDataAnalysisTool for Analysis of Thermocycler Data.
+4. Navigate to the appropriate folder of thermocycler data.
+5. For accurate TTR data, enter the seconds per cycle as measured during your thermocycler run
+6. Select option for plotting TTR data on plots (TTR will be calculated regardless and can be exported to table)
+	6a. Currently, the only TTR method implemented is using midpoint method. 
+7. Select "Continue". An image should appear with all thermocycler plots. 
+8. Use buttons at bottom of screen to save TTR table and plots to files. 
 
 
 Installation Instructions:
@@ -24,10 +35,3 @@ Installation Instructions:
 Make sure you have java installed, and give the file execution privileges.
 
 
-Version 1.01 Updates:
-Found a situation where first tube was not detected due to image deformity. Increased hamming window size to 61 pixels to compensate for deformity, which seems to have resolved issue.
-
-Version 1.02 Updates:
-Made UI for analyzing thermocycler data. 
-Fixed bug where y-position of tubes was sometimes not being detected by shifting the range of acceptable values for y-position to [400, 600] .
-Fixed bug where midpoint of two tubes was being called a tube since sum of two halves had same signal as one whole tube. Fixed by increasing width of local minima filter from 50 to 60 pixels.

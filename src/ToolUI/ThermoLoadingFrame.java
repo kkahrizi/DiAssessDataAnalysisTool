@@ -343,10 +343,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     thisRowOfPlots = labeledImage;
                 } else {
                     thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage,0);
-                }
-                
+                }                
             }
+            
         }
+        allPlots = joinImageVert(allPlots,thisRowOfPlots,0);
 
         OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData);
     }
@@ -524,7 +525,13 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 double[] TTRYValues = new double[TTRLINELENGTH];
                 double yValueAtTTR = yValueArray[TTR];
                 for (int TTRPoint = 0; TTRPoint < TTRLINELENGTH; TTRPoint++ ){
-                    TTRXValues[TTRPoint] = xValueArray[TTR-(int)Math.round(TTRLINELENGTH/2.0)+TTRPoint];
+                    int xPoint = (TTR - (int) Math.round(TTRLINELENGTH/2.0) + TTRPoint);
+                    if (xPoint < 1 ){
+                        xPoint = 0;
+                    } else if (xPoint > xValueArray.length-1){
+                        xPoint = xValueArray.length-1;
+                    }
+                    TTRXValues[TTRPoint] = xValueArray[xPoint];
                     TTRYValues[TTRPoint] = yValueAtTTR;
                 }
                 panel.addLinePlot(source, Color.red, TTRXValues, TTRYValues);
@@ -544,7 +551,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 //            panel.addLinePlot(source, Color.blue, yValueArray);
 //            
 //        }
-        panel.setFixedBounds(0, 0, Math.round(maxXvalue/10.0)*10);
+        panel.setFixedBounds(0, 0, Math.ceil(maxXvalue/10.0)*10);
         panel.setAxisLabels(AXISLABELS);
         panel.removePlotToolBar();
 //        for (int j =)
