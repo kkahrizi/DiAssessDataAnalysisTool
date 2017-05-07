@@ -39,3 +39,7 @@ Version 2.01 Updates:
 - Fixed bug where some plots were not being saved due to indexing error
 - Included option for number of plots per row
 
+Version 2.02 Updates:
+- Included summary statistics (mean, stdev) in thermocycler TTR data table
+
+
