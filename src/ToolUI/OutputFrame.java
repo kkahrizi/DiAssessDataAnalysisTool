@@ -5,7 +5,11 @@
  */
 package ToolUI;
 
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +35,9 @@ public class OutputFrame extends javax.swing.JFrame {
     public ArrayList<TTRTuple> TTRDat;
     public final static int THERMOCYCLER = 0;
     public final static int PCRTUBES = 1;
+    public final Font BIGFONT = new Font("Tahoma", Font.PLAIN, 48);
+
+    
     public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData) {
         initComponents();
         if(source == THERMOCYCLER){
@@ -129,19 +136,21 @@ public class OutputFrame extends javax.swing.JFrame {
 
     private void jButton2ActionPerformedThermo(java.awt.event.ActionEvent evt) {
         JFileChooser chooser = new JFileChooser();
-            chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            File chosenFile = null;
-            int returnVal = chooser.showOpenDialog(this);
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                chosenFile = chooser.getSelectedFile();
-                String filePath = chosenFile.getAbsolutePath();
-                System.out.println(filePath);
-                if (!(filePath.endsWith(".csv"))) {
-                    
-                    chosenFile = new File(filePath + ".csv");
-                
-                }
-           }
+        chooser.setPreferredSize(new Dimension(2000,1000));
+        setFileChooserFont(chooser.getComponents());
+        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        File chosenFile = null;
+        int returnVal = chooser.showOpenDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            chosenFile = chooser.getSelectedFile();
+            String filePath = chosenFile.getAbsolutePath();
+            System.out.println(filePath);
+            if (!(filePath.endsWith(".csv"))) {
+
+                chosenFile = new File(filePath + ".csv");
+
+            }
+        }
         try {
             // Write TTR data
             writeTTRData(chosenFile,TTRDat);
@@ -174,29 +183,46 @@ public class OutputFrame extends javax.swing.JFrame {
         
     }
     
+    public void setFileChooserFont(Component[] comp)
+    {
+        for(int x = 0; x < comp.length; x++)
+        {
+        if(comp[x] instanceof Container) setFileChooserFont(((Container)comp[x]).getComponents());
+            try
+            {
+                comp[x].setFont(BIGFONT);
+            }
+            catch(Exception e)
+            {
+            }
+        }
+    }
+    
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-            JFileChooser chooser = new JFileChooser();
-            chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            File chosenFile = null;
-            int returnVal = chooser.showOpenDialog(this);
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                chosenFile = chooser.getSelectedFile();
-                String filePath = chosenFile.getAbsolutePath();
-                System.out.println(filePath);
-                if (!(filePath.endsWith(".png") || filePath.endsWith(".jpeg") || filePath.endsWith(".jpg"))) {
-                    
-                    chosenFile = new File(filePath + ".png");
-                
-                }
-           }
+        JFileChooser chooser = new JFileChooser();
+        chooser.setPreferredSize(new Dimension(2000, 1000));
+        setFileChooserFont(chooser.getComponents());
+        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        File chosenFile = null;
+        int returnVal = chooser.showOpenDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            chosenFile = chooser.getSelectedFile();
+            String filePath = chosenFile.getAbsolutePath();
+            System.out.println(filePath);
+            if (!(filePath.endsWith(".png") || filePath.endsWith(".jpeg") || filePath.endsWith(".jpg"))) {
+
+                chosenFile = new File(filePath + ".png");
+
+            }
+        }
         try {
             // retrieve image
             ImageIO.write(toSave, "png", chosenFile);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,"Failed to save file " + chosenFile.getAbsolutePath());
+            JOptionPane.showMessageDialog(this, "Failed to save file " + chosenFile.getAbsolutePath());
             return;
         }
-        JOptionPane.showMessageDialog(this,"Success! Saved to " + chosenFile.getAbsolutePath());
+        JOptionPane.showMessageDialog(this, "Success! Saved to " + chosenFile.getAbsolutePath());
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
