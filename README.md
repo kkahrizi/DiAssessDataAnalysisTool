@@ -34,4 +34,8 @@ Installation Instructions:
 
 Make sure you have java installed, and give the file execution privileges.
 
+Version 2.01 Updates:
+- Made fonts on UI bigger for ease of reading on high DPI monitors
+- Fixed bug where some plots were not being saved due to indexing error
+- Included option for number of plots per row
 
