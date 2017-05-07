@@ -622,10 +622,12 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         if (currentText.equals("")){
             currentText = newText;
             myTextField.setText(currentText);
+            
         }
         else {
             currentText = currentText + "\n" + newText;
-            myTextField.setText(currentText);
+            myTextField.setText(currentText);                
+                    
         }
     }
 

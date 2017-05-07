@@ -21,7 +21,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 /**
  *
  * @author kamin
@@ -57,6 +57,8 @@ public class OutputFrame extends javax.swing.JFrame {
         jPanel1.add(new JLabel(new ImageIcon(outputImage)));
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.pack();
+        this.setExtendedState(this.getExtendedState()|JFrame.MAXIMIZED_BOTH );
+        this.toFront();
         this.setVisible(true);
     }
 
@@ -133,7 +135,8 @@ public class OutputFrame extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
+    
+    //Save TTR table
     private void jButton2ActionPerformedThermo(java.awt.event.ActionEvent evt) {
         JFileChooser chooser = new JFileChooser();
         chooser.setPreferredSize(new Dimension(2000,1000));
@@ -161,23 +164,84 @@ public class OutputFrame extends javax.swing.JFrame {
         JOptionPane.showMessageDialog(this,"Success! Saved to " + chosenFile.getAbsolutePath());
     }
     
+    //Class to store a label with summary statistics
+    public class StatLabelCombo {
+        
+        public SummaryStatistics stats;
+        public String label;
+        
+        public StatLabelCombo(String thisLabel){
+            stats = new SummaryStatistics();
+            label = thisLabel;
+        }
+        
+        public String getLabel(){
+            return label;
+        } 
+        
+        public void addValue(double val){
+            stats.addValue(val);
+        }
+        
+        public double getMean(){
+            return stats.getMean();
+        }
+        
+        public double getStdev(){
+            return stats.getStandardDeviation();
+        }
+    }
+    
+    
     public void writeTTRData (File toWrite, ArrayList<TTRTuple> data) throws IOException {
         PrintWriter writer = new PrintWriter(toWrite);
         StringBuilder sb = new StringBuilder();
-        String[] rows = new String[data.size()];
+        String[] TTR_rows = new String[data.size()];
+        ArrayList<StatLabelCombo> theseStatistics = new ArrayList<StatLabelCombo>();
+  
         int index = 0;
         while (!data.isEmpty()){
             TTRTuple thisPair = data.remove(0);
             String thisLabel = thisPair.Label;
-            Double thisTime = thisPair.TTR;
-            rows[index] = thisLabel + "," + Double.toString(thisTime);
+            double thisTime = thisPair.TTR;
+            TTR_rows[index] = thisLabel + "," + Double.toString(thisTime);
             index++;
-        }
+            boolean alreadySummarized = false;
+            for (int i = 0; i < theseStatistics.size(); i++){
+                if (theseStatistics.get(i).getLabel().equalsIgnoreCase(thisLabel)){
+                    alreadySummarized = true;
+                    break;
+                }
+            }
+            if (alreadySummarized){
+                continue;
+            }
+            StatLabelCombo comboToAdd = new StatLabelCombo(thisLabel);
+            comboToAdd.addValue(thisTime);
+            for (int i = 0; i < data.size(); i++) {
+                if (data.get(i).Label.equalsIgnoreCase(thisLabel)) {
+                    comboToAdd.addValue(data.get(i).TTR);
+                }                
+            }
+            theseStatistics.add(comboToAdd);
+            
+        } 
         
-        for (int i = 0; i < rows.length; i++){
-            sb.append(rows[i]);
+        
+        for (int i = 0; i < TTR_rows.length; i++){
+            sb.append(TTR_rows[i]);
             sb.append('\n');
         }     
+        sb.append("Descriptive Statistics");
+        sb.append('\n');
+        sb.append("Sample,TTR_Mean,TTR_Stdev");
+        sb.append('\n');
+        for (int i = 0 ; i < theseStatistics.size(); i++){
+            sb.append(theseStatistics.get(i).getLabel() + "," + 
+                    Double.toString(theseStatistics.get(i).getMean()) + "," +
+                    Double.toString(theseStatistics.get(i).getStdev()));
+            sb.append('\n');
+        }
         writer.write(sb.toString());
         writer.close();
         
@@ -198,6 +262,7 @@ public class OutputFrame extends javax.swing.JFrame {
         }
     }
     
+    //Save image to file
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         JFileChooser chooser = new JFileChooser();
         chooser.setPreferredSize(new Dimension(2000, 1000));

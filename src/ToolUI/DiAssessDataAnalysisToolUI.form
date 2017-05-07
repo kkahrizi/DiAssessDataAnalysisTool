@@ -127,7 +127,7 @@
           <Font name="Arial" size="50" style="1"/>
         </Property>
         <Property name="horizontalAlignment" type="int" value="0"/>
-        <Property name="text" type="java.lang.String" value="DiAssess Data Analysis Tool 2.01"/>
+        <Property name="text" type="java.lang.String" value="DiAssess Data Analysis Tool 2.02"/>
       </Properties>
     </Component>
     <Component class="javax.swing.JButton" name="ThermocyclerDataButton">
