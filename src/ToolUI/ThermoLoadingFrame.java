@@ -40,7 +40,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int ORGANIZE = 2;
     public final int PLOTWIDTH=500;
     public final int PLOTHEIGHT=600;
-    public final int PLOTSPERROW=4;
+   
     public final String[] AXISLABELS = {"Minutes", "RFU"};
     public boolean useMidpointMethod;
     public final int TTRLINELENGTH = 10;
@@ -77,6 +77,17 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                         JOptionPane.showMessageDialog(null, "Please make sure seconds per cycle is a number");
                         return;
                     }
+                    
+                    int plotsPerRow;
+                    try {
+                        plotsPerRow = Integer.parseInt(jTextField1.getText());
+                        
+                    } catch (NumberFormatException error ) {
+                        JOptionPane.showMessageDialog(null, "Please make sure number of plots per row is an integer");
+                        return;
+                    }
+                    
+                    
                     boolean labelTTR = false;
                     if(labelTTRButton.isSelected()){
                         labelTTR = true;
@@ -94,8 +105,12 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     }
                     for (int i = 0; i < allCombos.size(); i++) {
 
-                        makeAndSavePlots(allCombos.get(i), useMidpointMethod, secondsPerCycle, labelTTR);
-
+                        boolean successful = makeAndSavePlots(allCombos.get(i), useMidpointMethod, secondsPerCycle, labelTTR, plotsPerRow);
+                        if (!successful) {
+                            addText("Something went wrong. Ask Kamin to investigate");
+                        } else {
+                            addText("Plots were successful. You should see a window of plots with buttons to save");
+                        }
                     }
                 }
             });
@@ -206,8 +221,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         
     
     //
-    public void makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, 
-            double secondsPerCycle, boolean labelTTR){
+    public boolean makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, 
+            double secondsPerCycle, boolean labelTTR, int plotsPerRow){
         ArrayList<TTRTuple> TTRData = new ArrayList<TTRTuple>();
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
         File signalFile = thisCombo.getSignal();
@@ -236,7 +251,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             }
             if (OFFSET < 0){
                 JOptionPane.showMessageDialog(this,"Error, nothing found in the signal file " + signalFile.getName());
-                return;
+                return false;
             }
             for (int j = OFFSET; j < row.length; j++){
                 
@@ -324,7 +339,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     true,thisPanel, allReplicates, secondsPerCycle, labelTTR );
             BufferedImage labeledImage = addText(plotImage, label, 40, true, 0);
            
-            if ( (i + 1)% PLOTSPERROW == 0 || i == allData.size()-1){
+            if ( (i + 1)% plotsPerRow == 0 || i == allData.size()-1){
                 if (thisRowOfPlots == null){
                     thisRowOfPlots = labeledImage;
                 } else {
@@ -347,9 +362,13 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             }
             
         }
-        allPlots = joinImageVert(allPlots,thisRowOfPlots,0);
+        if ( thisRowOfPlots != null ) {
+           allPlots = joinImageVert(allPlots,thisRowOfPlots,0);
+        }
+        
 
         OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData);
+        return true;
     }
     
     static BufferedImage deepCopy(BufferedImage bi) {
@@ -635,13 +654,18 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         labelTTRButton = new javax.swing.JToggleButton();
         jSeparator1 = new javax.swing.JSeparator();
         jSeparator2 = new javax.swing.JSeparator();
+        jTextField1 = new javax.swing.JTextField();
+        jLabel5 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setResizable(false);
 
         myTextField.setColumns(20);
+        myTextField.setFont(new java.awt.Font("Monospaced", 0, 24)); // NOI18N
         myTextField.setRows(5);
         jScrollPane1.setViewportView(myTextField);
 
+        cancelButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         cancelButton.setText("Cancel");
         cancelButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -649,12 +673,15 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             }
         });
 
+        waitContinueButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         waitContinueButton.setText("(Wait...)");
 
         ttrMethodButtonGroup.add(inflectionButton);
+        inflectionButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         inflectionButton.setText("Inflection Point");
 
         ttrMethodButtonGroup.add(midpointButton);
+        midpointButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         midpointButton.setText("Midpoint of Linear Phase");
         midpointButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -662,8 +689,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             }
         });
 
+        jLabel1.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         jLabel1.setText("TTR Method:");
 
+        secondsPerCycleField.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         secondsPerCycleField.setText("40");
         secondsPerCycleField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -671,10 +700,13 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             }
         });
 
+        jLabel2.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         jLabel2.setText("Seconds per cycle:");
 
+        jLabel3.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         jLabel3.setText("Label TTR on Plot:");
 
+        labelTTRButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         labelTTRButton.setText("ON");
         labelTTRButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -686,6 +718,17 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 
         jSeparator2.setOrientation(javax.swing.SwingConstants.VERTICAL);
 
+        jTextField1.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        jTextField1.setText("4");
+        jTextField1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTextField1ActionPerformed(evt);
+            }
+        });
+
+        jLabel5.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        jLabel5.setText("Plots Per Row:");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -695,53 +738,74 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane1)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 365, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 213, Short.MAX_VALUE)
-                        .addComponent(waitContinueButton, javax.swing.GroupLayout.PREFERRED_SIZE, 402, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(21, 21, 21)
-                        .addComponent(jLabel2)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(29, 29, 29)
-                        .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(5, 5, 5)
-                        .addComponent(jLabel3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(labelTTRButton, javax.swing.GroupLayout.PREFERRED_SIZE, 61, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(43, 43, 43)
-                        .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(midpointButton)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(inflectionButton)))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 365, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel2)
+                                .addGap(18, 18, 18)
+                                .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jLabel3)))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(waitContinueButton, javax.swing.GroupLayout.PREFERRED_SIZE, 402, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(26, 26, 26)
+                                .addComponent(labelTTRButton, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(5, 5, 5)
+                                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(3, 3, 3)
+                                .addComponent(jLabel5)
+                                .addGap(18, 18, 18)
+                                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 84, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 43, Short.MAX_VALUE)
+                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 289, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(midpointButton, javax.swing.GroupLayout.PREFERRED_SIZE, 583, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(inflectionButton, javax.swing.GroupLayout.PREFERRED_SIZE, 393, javax.swing.GroupLayout.PREFERRED_SIZE)))))
                 .addContainerGap())
         );
+
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jSeparator1, jSeparator2});
+
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jTextField1, secondsPerCycleField});
+
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+            .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 364, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 854, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jSeparator1)
-                    .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(inflectionButton)
-                        .addComponent(jLabel1)
-                        .addComponent(midpointButton)
-                        .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jLabel3)
-                        .addComponent(labelTTRButton)
-                        .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                .addGap(10, 10, 10)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jLabel2)
+                    .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel3)
+                    .addComponent(labelTTRButton)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(midpointButton)
+                    .addComponent(inflectionButton))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(cancelButton)
                     .addComponent(waitContinueButton))
                 .addContainerGap())
+            .addGroup(layout.createSequentialGroup()
+                .addGap(340, 340, 340)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel3, jLabel5, jTextField1, labelTTRButton, secondsPerCycleField});
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jSeparator1, jSeparator2});
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -768,6 +832,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         }
     }//GEN-LAST:event_labelTTRButtonActionPerformed
 
+    private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jTextField1ActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -779,10 +847,12 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JScrollBar jScrollBar1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
+    private javax.swing.JTextField jTextField1;
     private javax.swing.JToggleButton labelTTRButton;
     private javax.swing.JRadioButton midpointButton;
     private javax.swing.JTextArea myTextField;

@@ -4,6 +4,10 @@
  * and open the template in the editor.
  */
 package ToolUI;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.io.File;
 import javax.swing.*;
 /**
@@ -12,13 +16,30 @@ import javax.swing.*;
  */
 public class ThermoAnalysis extends javax.swing.JFrame {
     private File chosenFolder;
+    public final Font BIGFONT = new Font("Tahoma", Font.PLAIN, 48);
     /**
      * Creates new form ThermoAnalysis
      */
     public ThermoAnalysis() {
         initComponents();
+        
     }
 
+    
+    public void setFileChooserFont(Component[] comp)
+    {
+        for(int x = 0; x < comp.length; x++)
+        {
+        if(comp[x] instanceof Container) setFileChooserFont(((Container)comp[x]).getComponents());
+            try
+            {
+                comp[x].setFont(BIGFONT);
+            }
+            catch(Exception e)
+            {
+            }
+        }
+    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -38,8 +59,11 @@ public class ThermoAnalysis extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
+        jLabel1.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("Thermocycler Data Analysis Tool");
 
+        fileSelector.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         fileSelector.setText("Select a folder...");
         fileSelector.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -47,12 +71,14 @@ public class ThermoAnalysis extends javax.swing.JFrame {
             }
         });
 
+        fileNameField.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         fileNameField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 fileNameFieldActionPerformed(evt);
             }
         });
 
+        fileLoader.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         fileLoader.setText("Load");
         fileLoader.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -67,35 +93,37 @@ public class ThermoAnalysis extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 1404, Short.MAX_VALUE)
                     .addComponent(fileLoader, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(fileSelector, javax.swing.GroupLayout.PREFERRED_SIZE, 154, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(fileSelector, javax.swing.GroupLayout.PREFERRED_SIZE, 488, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(84, 84, 84)
                         .addComponent(fileNameField)))
                 .addContainerGap())
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(0, 115, Short.MAX_VALUE)
-                .addComponent(jLabel1)
-                .addGap(107, 107, 107))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(7, 7, 7)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(fileNameField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(fileSelector))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addContainerGap()
+                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 77, Short.MAX_VALUE)
+                .addGap(71, 71, 71)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(fileNameField, javax.swing.GroupLayout.PREFERRED_SIZE, 92, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(fileSelector, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(65, 65, 65)
                 .addComponent(fileLoader, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 17, Short.MAX_VALUE))
+                .addGap(58, 58, 58))
         );
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {fileNameField, fileSelector});
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void fileSelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSelectorActionPerformed
             JFileChooser chooser = new JFileChooser();
+            setFileChooserFont(chooser.getComponents());
+            chooser.setPreferredSize(new Dimension(2000,1000));
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             
             int returnVal = chooser.showOpenDialog(this);

@@ -82,6 +82,7 @@ public class OutputFrame extends javax.swing.JFrame {
 
         imagePane.setViewportView(jPanel1);
 
+        jButton1.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         jButton1.setText("Save to file...");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -89,7 +90,13 @@ public class OutputFrame extends javax.swing.JFrame {
             }
         });
 
+        jButton2.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
         jButton2.setText("Reorder images...");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -109,7 +116,7 @@ public class OutputFrame extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(imagePane, javax.swing.GroupLayout.DEFAULT_SIZE, 391, Short.MAX_VALUE)
+                .addComponent(imagePane)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -191,6 +198,10 @@ public class OutputFrame extends javax.swing.JFrame {
         }
         JOptionPane.showMessageDialog(this,"Success! Saved to " + chosenFile.getAbsolutePath());
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jButton2ActionPerformed
 
     /**
      * @param args the command line arguments
