@@ -40,6 +40,7 @@ public class OutputFrame extends javax.swing.JFrame {
     
     public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData) {
         initComponents();
+  
         if(source == THERMOCYCLER){
             jButton2.setText("Save plots to .png");
             jButton2.setText("Save TTR data to .csv");
@@ -158,10 +159,15 @@ public class OutputFrame extends javax.swing.JFrame {
             // Write TTR data
             writeTTRData(chosenFile,TTRDat);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,"Failed to save file " + chosenFile.getAbsolutePath());
+            JLabel label = new JLabel("Failed to save file " + chosenFile.getAbsolutePath());
+            label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+            JOptionPane.showMessageDialog(this, label, "ERROR", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        JOptionPane.showMessageDialog(this,"Success! Saved to " + chosenFile.getAbsolutePath());
+        JLabel label = new JLabel("Success! Saved to " + chosenFile.getAbsolutePath());
+        label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+        JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
+        return;
     }
     
     //Class to store a label with summary statistics
@@ -284,10 +290,15 @@ public class OutputFrame extends javax.swing.JFrame {
             // retrieve image
             ImageIO.write(toSave, "png", chosenFile);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Failed to save file " + chosenFile.getAbsolutePath());
+            JLabel label = new JLabel("Failed to save file " + chosenFile.getAbsolutePath());
+            label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+            JOptionPane.showMessageDialog(this, label, "ERROR", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        JOptionPane.showMessageDialog(this, "Success! Saved to " + chosenFile.getAbsolutePath());
+        JLabel label = new JLabel("Success! Saved to " + chosenFile.getAbsolutePath());
+        label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+        JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
+        return;
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
