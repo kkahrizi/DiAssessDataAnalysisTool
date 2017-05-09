@@ -36,11 +36,12 @@ public class OutputFrame extends javax.swing.JFrame {
     public final static int THERMOCYCLER = 0;
     public final static int PCRTUBES = 1;
     public final Font BIGFONT = new Font("Tahoma", Font.PLAIN, 48);
-
+    public Font official_font;
     
-    public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData) {
+    public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData, Font officialFont) {
         initComponents();
-  
+        official_font = officialFont;
+        DiAssessDataAnalysisToolUI.applyFont(this, official_font);
         if(source == THERMOCYCLER){
             jButton2.setText("Save plots to .png");
             jButton2.setText("Save TTR data to .csv");

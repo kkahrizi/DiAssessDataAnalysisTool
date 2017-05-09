@@ -16,12 +16,14 @@ import javax.swing.*;
  */
 public class ThermoAnalysis extends javax.swing.JFrame {
     private File chosenFolder;
-    public final Font BIGFONT = new Font("Tahoma", Font.PLAIN, 48);
+    public Font official_font = null;
     /**
      * Creates new form ThermoAnalysis
      */
-    public ThermoAnalysis() {
+    public ThermoAnalysis(Font officialFont) {
         initComponents();
+        official_font = officialFont;
+        DiAssessDataAnalysisToolUI.applyFont(this, official_font);
         
     }
 
@@ -33,7 +35,7 @@ public class ThermoAnalysis extends javax.swing.JFrame {
         if(comp[x] instanceof Container) setFileChooserFont(((Container)comp[x]).getComponents());
             try
             {
-                comp[x].setFont(BIGFONT);
+                comp[x].setFont(official_font);
             }
             catch(Exception e)
             {
@@ -96,9 +98,9 @@ public class ThermoAnalysis extends javax.swing.JFrame {
                     .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 1404, Short.MAX_VALUE)
                     .addComponent(fileLoader, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(fileSelector, javax.swing.GroupLayout.PREFERRED_SIZE, 488, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(fileSelector, javax.swing.GroupLayout.DEFAULT_SIZE, 694, Short.MAX_VALUE)
                         .addGap(84, 84, 84)
-                        .addComponent(fileNameField)))
+                        .addComponent(fileNameField, javax.swing.GroupLayout.DEFAULT_SIZE, 626, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -108,14 +110,12 @@ public class ThermoAnalysis extends javax.swing.JFrame {
                 .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 77, Short.MAX_VALUE)
                 .addGap(71, 71, 71)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(fileNameField, javax.swing.GroupLayout.PREFERRED_SIZE, 92, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(fileSelector, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(fileNameField, javax.swing.GroupLayout.DEFAULT_SIZE, 100, Short.MAX_VALUE)
+                    .addComponent(fileSelector, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(65, 65, 65)
-                .addComponent(fileLoader, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(fileLoader, javax.swing.GroupLayout.DEFAULT_SIZE, 68, Short.MAX_VALUE)
                 .addGap(58, 58, 58))
         );
-
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {fileNameField, fileSelector});
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -142,47 +142,13 @@ public class ThermoAnalysis extends javax.swing.JFrame {
         if (chosenFolder == null){
             JOptionPane.showMessageDialog(this,"Please select a folder to load");
         } else {
-            ThermoLoadingFrame loadData = new ThermoLoadingFrame(chosenFolder);
+            ThermoLoadingFrame loadData = new ThermoLoadingFrame(chosenFolder,official_font);
             loadData.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
             loadData.setVisible(true);
         }
         
     }//GEN-LAST:event_fileLoaderActionPerformed
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(ThermoAnalysis.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(ThermoAnalysis.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(ThermoAnalysis.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(ThermoAnalysis.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new ThermoAnalysis().setVisible(true);
-            }
-        });
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton fileLoader;

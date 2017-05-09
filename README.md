@@ -42,4 +42,5 @@ Version 2.01 Updates:
 Version 2.02 Updates:
 - Included summary statistics (mean, stdev) in thermocycler TTR data table
 
-
+Version 2.03 Updates:
+- Created slide bar to set font size, which stores data in "fontSize.conf" in dist folder

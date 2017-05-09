@@ -31,32 +31,32 @@
     <DimensionLayout dim="0">
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
-              <EmptySpace max="-2" attributes="0"/>
+              <EmptySpace min="-2" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="0" attributes="0">
                   <Component id="jLabel1" pref="1404" max="32767" attributes="0"/>
                   <Component id="fileLoader" max="32767" attributes="0"/>
                   <Group type="102" attributes="0">
-                      <Component id="fileSelector" min="-2" pref="488" max="-2" attributes="0"/>
+                      <Component id="fileSelector" pref="694" max="32767" attributes="0"/>
                       <EmptySpace min="-2" pref="84" max="-2" attributes="0"/>
-                      <Component id="fileNameField" max="32767" attributes="0"/>
+                      <Component id="fileNameField" pref="626" max="32767" attributes="0"/>
                   </Group>
               </Group>
-              <EmptySpace max="-2" attributes="0"/>
+              <EmptySpace min="-2" max="-2" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
     <DimensionLayout dim="1">
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
-              <EmptySpace max="-2" attributes="0"/>
+              <EmptySpace min="-2" max="-2" attributes="0"/>
               <Component id="jLabel1" pref="77" max="32767" attributes="0"/>
               <EmptySpace min="-2" pref="71" max="-2" attributes="0"/>
               <Group type="103" groupAlignment="2" attributes="0">
-                  <Component id="fileNameField" linkSize="1" alignment="2" min="-2" pref="92" max="-2" attributes="0"/>
-                  <Component id="fileSelector" linkSize="1" alignment="2" min="-2" pref="100" max="-2" attributes="0"/>
+                  <Component id="fileNameField" alignment="2" pref="100" max="32767" attributes="0"/>
+                  <Component id="fileSelector" alignment="2" max="32767" attributes="0"/>
               </Group>
               <EmptySpace min="-2" pref="65" max="-2" attributes="0"/>
-              <Component id="fileLoader" min="-2" pref="68" max="-2" attributes="0"/>
+              <Component id="fileLoader" pref="68" max="32767" attributes="0"/>
               <EmptySpace min="-2" pref="58" max="-2" attributes="0"/>
           </Group>
       </Group>

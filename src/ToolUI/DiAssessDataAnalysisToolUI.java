@@ -4,21 +4,112 @@
  * and open the template in the editor.
  */
 package ToolUI;
+import java.awt.Component;
+import java.awt.Font;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 /**
  *
  * @author kamin
  */
 public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
-
+    private int fontSize;
+    private int defaultFontSize = 38;
+    private int fontMin = 10;
+    private int fontMax = 50;
+    private final String fontSizeFileName = "fontSize.conf";
+    public File fontSizeFile;
+    public final String fontSizeHeader = "Font_size:";
     /**
      * Creates new form DiAssessDataAnalysisToolUI
      */
     public DiAssessDataAnalysisToolUI() {
         initComponents();
         this.pack();
+        File locationDirectory = new File(DiAssessDataAnalysisToolUI.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+        fontSizeFile = new File(locationDirectory.getParentFile(),fontSizeFileName);
+        System.out.println(fontSizeFile.getAbsolutePath());
+        fontSize = defaultFontSize;
+        if(fontSizeFile.exists()){
+            fontSize = readFontConfFile();
+        }
+        fontSizeSlider.setValue(fontSize);
+        if (fontSize < fontMin || fontSize > fontMax){
+            fontSize = defaultFontSize;
+        }
+        JLabel label = new JLabel("Saving font size to " + fontSizeFile.getAbsolutePath());
+        label.setFont(getOfficialFont());
+        JOptionPane.showMessageDialog(this, label);
+     
+    }
+    
+    public Font getOfficialFont(){
+        if (fontSize < fontMin || fontSize > fontMax){
+            return new Font("Tahoma", Font.PLAIN, defaultFontSize);
+        } else {
+            return new Font("Tahoma", Font.PLAIN,fontSize);
+        }
     }
 
+    //Reads "fontSize.conf" file, a colon (:) delimited file with the following format:
+    //Font_size: 48
+    //Only the first line is read
+    //First parseable 3 digit number after colon is reported as font size
+    //Returns int value of Font_size
+    public int readFontConfFile() {
+        try (BufferedReader br = new BufferedReader(new FileReader(fontSizeFile))) {
+            String line = br.readLine();
+            if (line != null) {
+                System.out.println(line);
+                int colonIndex = line.indexOf(":");
+                System.out.println(colonIndex);
+                for (int i = Math.min(4, (line.length() - colonIndex)); i > 0; i--) {
+                    String stringDigits = line.substring(colonIndex + 1, colonIndex + i);
+                    System.out.println(stringDigits);
+
+                    try {
+                        int fontValue = Integer.parseInt(stringDigits);
+                        if (60 > fontValue && fontValue > 20) {
+                            return Integer.parseInt(stringDigits);
+                        }
+                    } catch (NumberFormatException e) {
+                        continue;
+                    }
+
+                }
+            }
+
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this.getContentPane(), "Corrupted file: " + fontSizeFileName);
+            Logger.getLogger(DiAssessDataAnalysisToolUI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return -1;
+    }
+    
+    
+    public void writeConfFile(int fontSize){
+        String content = fontSizeHeader+Integer.toString(fontSize);
+        try {
+            FileWriter fw = new FileWriter(fontSizeFile);
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write(content);
+            bw.close();
+            fw.close();
+        } catch (IOException ex) {
+            Logger.getLogger(DiAssessDataAnalysisToolUI.class.getName()).log(Level.SEVERE, null, ex);
+        } 
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -38,6 +129,8 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
         TubeButton = new javax.swing.JButton();
         DeviceButton = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
+        fontSizeSlider = new javax.swing.JSlider();
+        jLabel3 = new javax.swing.JLabel();
 
         jButton1.setText("jButton1");
 
@@ -78,9 +171,10 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
 
         jLabel1.setFont(new java.awt.Font("Arial", 1, 50)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setText("DiAssess Data Analysis Tool 2.02");
+        jLabel1.setText("DiAssess Data Analysis Tool 2.03");
+        jLabel1.setToolTipText("");
 
-        ThermocyclerDataButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        ThermocyclerDataButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         ThermocyclerDataButton.setText("Thermocycler Data (beta)");
         ThermocyclerDataButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -88,7 +182,7 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
             }
         });
 
-        PlateReaderButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        PlateReaderButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         PlateReaderButton.setText("Plate Reader Data (In dev.)");
         PlateReaderButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -96,7 +190,7 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
             }
         });
 
-        TubeButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        TubeButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         TubeButton.setText("Colorimetric Tube Data (beta)");
         TubeButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -104,7 +198,7 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
             }
         });
 
-        DeviceButton.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        DeviceButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         DeviceButton.setText("Colorimetric Device Data (In dev.)");
         DeviceButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -112,8 +206,29 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
             }
         });
 
-        jLabel2.setFont(new java.awt.Font("Tahoma", 0, 48)); // NOI18N
+        jLabel2.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         jLabel2.setText("Please select the type of data you would like to analyze.");
+
+        fontSizeSlider.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
+        fontSizeSlider.setMajorTickSpacing(10);
+        fontSizeSlider.setMaximum(40);
+        fontSizeSlider.setMinimum(10);
+        fontSizeSlider.setMinorTickSpacing(2);
+        fontSizeSlider.setPaintLabels(true);
+        fontSizeSlider.setPaintTicks(true);
+        fontSizeSlider.setSnapToTicks(true);
+        fontSizeSlider.setToolTipText("Slide to set font size");
+        fontSizeSlider.setValue(35);
+        fontSizeSlider.setPreferredSize(new java.awt.Dimension(200, 50));
+        fontSizeSlider.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                fontSizeSliderStateChanged(evt);
+            }
+        });
+
+        jLabel3.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
+        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel3.setText("Font size");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -122,42 +237,54 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addComponent(DeviceButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(ThermocyclerDataButton, javax.swing.GroupLayout.PREFERRED_SIZE, 687, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(30, 30, 30)
-                                .addComponent(PlateReaderButton, javax.swing.GroupLayout.PREFERRED_SIZE, 679, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(30, 30, 30)
-                                .addComponent(TubeButton)))
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap())
+                                .addComponent(ThermocyclerDataButton, javax.swing.GroupLayout.DEFAULT_SIZE, 511, Short.MAX_VALUE)
+                                .addGap(40, 40, 40)
+                                .addComponent(PlateReaderButton, javax.swing.GroupLayout.DEFAULT_SIZE, 537, Short.MAX_VALUE)
+                                .addGap(40, 40, 40)
+                                .addComponent(TubeButton, javax.swing.GroupLayout.DEFAULT_SIZE, 575, Short.MAX_VALUE)))
+                        .addContainerGap())
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
+                                .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addGap(155, 155, 155)
+                                        .addComponent(fontSizeSlider, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 392, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(42, 42, 42))))
+                            .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(53, 53, 53))))
         );
-
-        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {PlateReaderButton, ThermocyclerDataButton, TubeButton});
-
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(44, 44, 44)
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(20, 20, 20)
+                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 93, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                        .addComponent(PlateReaderButton)
-                        .addComponent(TubeButton, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(ThermocyclerDataButton, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(58, 58, 58)
-                .addComponent(DeviceButton)
-                .addGap(54, 54, 54))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(30, 30, 30)
+                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 62, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(fontSizeSlider, javax.swing.GroupLayout.PREFERRED_SIZE, 96, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(ThermocyclerDataButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(PlateReaderButton, javax.swing.GroupLayout.DEFAULT_SIZE, 85, Short.MAX_VALUE)
+                    .addComponent(TubeButton, javax.swing.GroupLayout.DEFAULT_SIZE, 85, Short.MAX_VALUE))
+                .addGap(41, 41, 41)
+                .addComponent(DeviceButton, javax.swing.GroupLayout.DEFAULT_SIZE, 78, Short.MAX_VALUE)
+                .addGap(77, 77, 77))
         );
-
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {PlateReaderButton, ThermocyclerDataButton, TubeButton});
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -177,7 +304,7 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
 
     private void ThermocyclerDataButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ThermocyclerDataButtonActionPerformed
         // TODO add your handling code here:
-        JFrame myAnalysis = new ThermoAnalysis();
+        JFrame myAnalysis = new ThermoAnalysis(getOfficialFont());
         myAnalysis.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         myAnalysis.setVisible(true);
     }//GEN-LAST:event_ThermocyclerDataButtonActionPerformed
@@ -187,6 +314,33 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
         myAnalysis.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         myAnalysis.setVisible(true);
     }//GEN-LAST:event_TubeButtonActionPerformed
+
+    public static void applyFont(JFrame frameToApply, Font fontToApply){
+        Component[] allComponents = frameToApply.getContentPane().getComponents();
+        for (int i = 0; i < allComponents.length; i++){
+            Component thisComponent = allComponents[i];
+            if (thisComponent instanceof JPanel) {
+                
+                Component[] subComponents = ((JPanel) thisComponent).getComponents();
+                
+                for (int j = 0; j < subComponents.length; j++) {
+                    thisComponent.setFont(fontToApply);
+                }
+            }
+            thisComponent.setFont(fontToApply);
+        }
+    }
+    
+    
+    
+    private void fontSizeSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_fontSizeSliderStateChanged
+        int setValue = fontSizeSlider.getValue();
+        
+        Font myFont = new Font("Tahoma", Font.PLAIN, setValue);
+        applyFont(this,myFont);
+        fontSize = setValue;
+        writeConfFile(setValue);
+    }//GEN-LAST:event_fontSizeSliderStateChanged
 
     /**
      * @param args the command line arguments
@@ -228,9 +382,11 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
     private javax.swing.JButton PlateReaderButton;
     private javax.swing.JButton ThermocyclerDataButton;
     private javax.swing.JButton TubeButton;
+    private javax.swing.JSlider fontSizeSlider;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
