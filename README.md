@@ -44,3 +44,6 @@ Version 2.02 Updates:
 
 Version 2.03 Updates:
 - Created slide bar to set font size, which stores data in "fontSize.conf" in dist folder
+
+Version 2.04 Updates:
+- Added ability to interpret melt curves and plot them in separate window

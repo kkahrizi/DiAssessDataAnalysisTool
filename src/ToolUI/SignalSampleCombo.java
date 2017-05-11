@@ -17,10 +17,22 @@ import java.io.File;
 public class SignalSampleCombo {
     public File signalFile;
     public File sampleFile;
+    public boolean isMeltCurve;
     
     public SignalSampleCombo(File signal, File sample){
         signalFile = signal;
         sampleFile = sample;
+        isMeltCurve = false;
+    }
+    
+    public SignalSampleCombo(File signal, File sample, boolean meltCurve){
+        signalFile = signal;
+        sampleFile = sample;
+        isMeltCurve = meltCurve;
+    }
+    
+    public boolean isMelt(){
+        return isMeltCurve;
     }
     
     public SignalSampleCombo(File signal){

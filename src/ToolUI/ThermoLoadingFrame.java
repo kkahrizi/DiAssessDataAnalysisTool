@@ -36,11 +36,14 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int STITCH_TOGETHER = 1;
     public final String SIGNAL_FILE_TOKEN = "Quantification Amplification Results_SYBR.csv";
     public final String SAMPLE_FILE_TOKEN = "Quantification Summary_0.csv";
+    public final String MELTCURVE_SIGNAL_TOKEN = "Melt Curve RFU Results_SYBR.csv";
+    public final String MELTCURVE_SAMPLE_TOKEN = "Melt Curve Summary_0.csv";
     public final String ROOT_SPLITTER = " - ";
     public final int ORGANIZE = 2;
     public final int PLOTWIDTH=500;
     public final int PLOTHEIGHT=600;
     public final String[] AXISLABELS = {"Minutes", "RFU"};
+    public final String[] MELTAXISLABELS = {"Temperature (C)", "RFU"};
 
     public Font official_font;
     public boolean useMidpointMethod;
@@ -149,9 +152,22 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
        
         ArrayList<File> sampleFiles = new ArrayList<File>();
         ArrayList<File> signalFiles = new ArrayList<File>();
-        
+        ArrayList<File> meltCurveSignalFiles = new ArrayList<File>();
+        ArrayList<File> meltCurveSampleFiles = new ArrayList<File>();
         for (File aFolder : allSubFolders){
             String fileName = aFolder.getName();
+            
+            if (fileName.contains(MELTCURVE_SAMPLE_TOKEN)){
+                File meltCurve_sample = aFolder;
+                addText("Found " + meltCurve_sample.getName());
+                meltCurveSampleFiles.add(meltCurve_sample);
+            }
+            if (fileName.contains(MELTCURVE_SIGNAL_TOKEN)){
+                File meltCurve_signal = aFolder;
+                addText("Found " + meltCurve_signal.getName());
+                meltCurveSignalFiles.add(meltCurve_signal);
+            }
+            
             
             if(fileName.contains(SIGNAL_FILE_TOKEN)){
                 File signalFile = aFolder;
@@ -176,7 +192,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             addText("We were unable to find any files containing the phrase \"" + SAMPLE_FILE_TOKEN + "\". \nWe will assume column headers are the correct sample names.");
             sampleWarningGiven = true;
         }
-        //Loop through all sample Files and see if there is a matching file;
+         //Loop through all sample Files and see if there is a matching file;
         while(!signalFiles.isEmpty()){
             File aSignalFile = signalFiles.remove(0);
             String signalFileName = aSignalFile.getName();
@@ -221,6 +237,57 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 allCombos.add(new SignalSampleCombo(aSignalFile));
             }
         }
+        
+        
+        
+        
+        
+        
+        //Loop through all melt curve signal Files and see if there is a matching file;
+        while(!meltCurveSignalFiles.isEmpty()){
+            File aSignalFile = meltCurveSignalFiles.remove(0);
+            String signalFileName = aSignalFile.getName();
+            String[] signalSplitName = signalFileName.split(ROOT_SPLITTER);
+            String signalRootName = null;
+            if(signalSplitName.length > 0){
+                signalRootName = signalSplitName[0];
+            } else {
+                addText("Could not get root name for " + signalFileName + ". There is no instance of \"" + ROOT_SPLITTER + "\".\n Did someone rename this file? Skipping...");
+                continue;
+            }
+            boolean foundSample = false;
+
+            if (!sampleWarningGiven){
+                for (int i = 0; i < meltCurveSampleFiles.size(); i++){
+                    foundSample = false;
+                    File aSampleFile = meltCurveSampleFiles.get(i);
+                    String sampleFileName = aSampleFile.getName();
+                    String[] sampleSplitName = sampleFileName.split(ROOT_SPLITTER);
+                    if (sampleSplitName.length > 0 ){
+                        String sampleRootName = sampleSplitName[0];
+                        if(sampleRootName.equals(signalRootName)){
+                            addText("Matched two files: ");
+                            addText("For " + signalRootName + ", found:");
+                            addText("\tRFU Signal file: " + signalFileName);
+                            addText("\tSample name file: " + sampleFileName);
+                            SignalSampleCombo thisCombo = new SignalSampleCombo(aSignalFile, aSampleFile,true);
+                            allCombos.add(thisCombo);
+                            foundSample = true;
+                            break;
+                        }
+                    } else {
+                        addText("There is a melt curve sample file without a root name: " + sampleFileName + " removing from list and skipping.");
+                        sampleFiles.remove(i);                        
+                    }
+                } 
+            }
+            
+            if(!foundSample){
+                addText("Unable to find matching file for: " + signalFileName + ".\n We will treat column headers as sample names.");
+                
+                allCombos.add(new SignalSampleCombo(aSignalFile));
+            }
+        }
         return FILES_FOUND;
     }
         
@@ -232,6 +299,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
         File signalFile = thisCombo.getSignal();
         File sampleFile = thisCombo.getSample();
+        boolean isMeltCurve = thisCombo.isMelt();
+        ThermoReplicate meltCurveTemperatures = null;
+        if (isMeltCurve) {
+            meltCurveTemperatures = new ThermoReplicate("Temperature");
+        }
         ArrayList<String[]> signalFileData = readFile(signalFile); 
         ArrayList<String[]> sampleFileData = null;
         boolean hasSamples = false;
@@ -242,11 +314,30 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         System.out.println("Signal file: " + signalFile.getName());
         System.out.println("Sample file: " + sampleFile.getName());
         ArrayList<ThermoReplicate> allUnlabeledReplicates = new ArrayList<ThermoReplicate>();
+        
+        
+        int temperatureCol = -1; //This will keep track of which column the temperature data is found for melt curves
         for (int i = 0; i < signalFileData.size(); i++){
             String[] row = signalFileData.get(i);
+            
+            if (isMeltCurve && temperatureCol != -1){
+                meltCurveTemperatures.addDataPoint(Double.parseDouble(row[temperatureCol]));
+            }
+            
+            //This for loop finds the column of where temperature data is found and stores that column index in 
+            //temperatureCol
+            for (int k = 0; k < row.length; k++) {
+                if (isMeltCurve && row[k].equals("Temperature")) {
+                    temperatureCol = k;
+                }
+            }
+            
+            
+            
             int offsetAttempt = 0;
             while (OFFSET < 0 && offsetAttempt < row.length){
                 System.out.println(row[offsetAttempt]);
+                
                 if(!row[offsetAttempt].equals("") && !row[offsetAttempt].equals("Cycle")){
                     OFFSET = offsetAttempt;
                     break;
@@ -335,15 +426,19 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             for (int j = 0; j < allReplicates.size(); j++){
                 toPlot.add(allReplicates.get(j).getSignal());
                 double TTR = 0;
-                if(isMidpoint){
+                if(isMidpoint && !isMeltCurve){
                     TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle);
                 }
                 TTRData.add(new TTRTuple(label,TTR));
             }
             BufferedImage plotImage = plotGraph(thisSample.getLabel(),toPlot,
-                    true,thisPanel, allReplicates, secondsPerCycle, labelTTR );
-            BufferedImage labeledImage = addText(plotImage, label, 40, true, 0);
-           
+                    true,thisPanel, allReplicates, secondsPerCycle, labelTTR&&!isMeltCurve, isMeltCurve, meltCurveTemperatures );
+            BufferedImage labeledImage = null;
+            if (isMeltCurve){
+                labeledImage = addText(plotImage, label + " Melt", 40, true, 0);
+            } else {
+                labeledImage = addText(plotImage, label, 40, true, 0);
+            }
             if ( (i + 1)% plotsPerRow == 0 || i == allData.size()-1){
                 if (thisRowOfPlots == null){
                     thisRowOfPlots = labeledImage;
@@ -523,7 +618,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     
     public BufferedImage plotGraph(String source, ArrayList<double[]> yValues, 
             boolean newPlot, Plot2DPanel toPlot, ArrayList<ThermoReplicate> allReplicates, 
-            double secondsPerCycle, boolean plotTTR){
+            double secondsPerCycle, boolean plotTTR, boolean isMelt, ThermoReplicate meltTemperatures){
         
               
         Plot2DPanel panel = null;
@@ -539,10 +634,14 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             panel = toPlot;
         }
         double maxXvalue = 0;
+        double minXvalue = 100;
         for (int plotIndex = 0; plotIndex < allReplicates.size(); plotIndex++){
             ThermoReplicate plotReplicate = allReplicates.get(plotIndex);
             double [] yValueArray = plotReplicate.getSignal();
             double [] xValueArray = plotReplicate.getMinutes(secondsPerCycle);
+            if (isMelt){
+                xValueArray = meltTemperatures.getSignal();
+            }
             if(plotTTR){
                 int TTR = plotReplicate.getMidpointTTRIndex();
                 double[] TTRXValues = new double[TTRLINELENGTH];
@@ -563,6 +662,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             if (maxXvalue < xValueArray[xValueArray.length-1]){
                 maxXvalue = xValueArray[xValueArray.length-1];
             }
+            if (minXvalue > xValueArray[0]){
+                minXvalue = xValueArray[0];
+            }
             panel.addLinePlot(source, Color.blue, xValueArray, yValueArray);
         }
 //        for (int plotIndex = 0; plotIndex < yValues.size(); plotIndex++){
@@ -576,7 +678,14 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 //            
 //        }
         panel.setFixedBounds(0, 0, Math.ceil(maxXvalue/10.0)*10);
-        panel.setAxisLabels(AXISLABELS);
+        if (isMelt){
+            panel.setFixedBounds(0,minXvalue,Math.ceil(maxXvalue/10.0)*10);
+        }
+        if (isMelt){
+            panel.setAxisLabels(MELTAXISLABELS);
+        } else {
+            panel.setAxisLabels(AXISLABELS);
+        }
         panel.removePlotToolBar();
 //        for (int j =)
 //        double[] xAxis = new double[yAxis.length];
