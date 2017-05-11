@@ -161,12 +161,12 @@ public class OutputFrame extends javax.swing.JFrame {
             writeTTRData(chosenFile,TTRDat);
         } catch (IOException e) {
             JLabel label = new JLabel("Failed to save file " + chosenFile.getAbsolutePath());
-            label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+            label.setFont(official_font);
             JOptionPane.showMessageDialog(this, label, "ERROR", JOptionPane.WARNING_MESSAGE);
             return;
         }
         JLabel label = new JLabel("Success! Saved to " + chosenFile.getAbsolutePath());
-        label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+        label.setFont(official_font);
         JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
         return;
     }
@@ -292,12 +292,12 @@ public class OutputFrame extends javax.swing.JFrame {
             ImageIO.write(toSave, "png", chosenFile);
         } catch (IOException e) {
             JLabel label = new JLabel("Failed to save file " + chosenFile.getAbsolutePath());
-            label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+            label.setFont(official_font);
             JOptionPane.showMessageDialog(this, label, "ERROR", JOptionPane.WARNING_MESSAGE);
             return;
         }
         JLabel label = new JLabel("Success! Saved to " + chosenFile.getAbsolutePath());
-        label.setFont(new Font("Tahoma", Font.PLAIN, 48));
+        label.setFont(official_font);
         JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
         return;
     }//GEN-LAST:event_jButton1ActionPerformed
