@@ -36,7 +36,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int STITCH_TOGETHER = 1;
     public final String SIGNAL_FILE_TOKEN = "Quantification Amplification Results_SYBR.csv";
     public final String SAMPLE_FILE_TOKEN = "Quantification Summary_0.csv";
-    public final String MELTCURVE_SIGNAL_TOKEN = "Melt Curve RFU Results_SYBR.csv";
+    public final String MELTCURVE_SIGNAL_TOKEN = "Melt Curve Derivative Results_SYBR.csv";
     public final String MELTCURVE_SAMPLE_TOKEN = "Melt Curve Summary_0.csv";
     public final String ROOT_SPLITTER = " - ";
     public final int ORGANIZE = 2;
@@ -44,7 +44,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int PLOTHEIGHT=600;
     public final String[] AXISLABELS = {"Minutes", "RFU"};
     public final String[] MELTAXISLABELS = {"Temperature (C)", "RFU"};
-
+    public final Color[] colors = {Color.BLUE,Color.GREEN,Color.CYAN,Color.GRAY, Color.BLACK,Color.ORANGE,Color.MAGENTA};
+    
     public Font official_font;
     public boolean useMidpointMethod;
     public final int TTRLINELENGTH = 10;
@@ -665,7 +666,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             if (minXvalue > xValueArray[0]){
                 minXvalue = xValueArray[0];
             }
-            panel.addLinePlot(source, Color.blue, xValueArray, yValueArray);
+            panel.addLinePlot(source, colors[plotIndex%colors.length], xValueArray, yValueArray);
         }
 //        for (int plotIndex = 0; plotIndex < yValues.size(); plotIndex++){
 //            double[] yValueArray = yValues.get(plotIndex);

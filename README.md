@@ -47,3 +47,6 @@ Version 2.03 Updates:
 
 Version 2.04 Updates:
 - Added ability to interpret melt curves and plot them in separate window
+
+Version 2.05 Updates:
+- Modified melt curve analyses to look at derivative of melt curve, instead of absolute RFU values
