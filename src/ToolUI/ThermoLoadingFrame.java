@@ -430,10 +430,13 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 if(isMidpoint && !isMeltCurve){
                     TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle);
                 }
+                if (isMeltCurve){
+                    TTR = meltCurveTemperatures.getSignal()[allReplicates.get(j).getPeakIndex()];
+                }
                 TTRData.add(new TTRTuple(label,TTR));
             }
             BufferedImage plotImage = plotGraph(thisSample.getLabel(),toPlot,
-                    true,thisPanel, allReplicates, secondsPerCycle, labelTTR&&!isMeltCurve, isMeltCurve, meltCurveTemperatures );
+                    true,thisPanel, allReplicates, secondsPerCycle, labelTTR, isMeltCurve, meltCurveTemperatures );
             BufferedImage labeledImage = null;
             if (isMeltCurve){
                 labeledImage = addText(plotImage, label + " Melt", 40, true, 0);
@@ -468,7 +471,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         }
         
 
-        OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData, official_font);
+        OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData, official_font, passedFolder);
         return true;
     }
     
@@ -645,18 +648,29 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             }
             if(plotTTR){
                 int TTR = plotReplicate.getMidpointTTRIndex();
+                if (isMelt){
+                    TTR = plotReplicate.getPeakIndex();
+                }
                 double[] TTRXValues = new double[TTRLINELENGTH];
                 double[] TTRYValues = new double[TTRLINELENGTH];
                 double yValueAtTTR = yValueArray[TTR];
-                for (int TTRPoint = 0; TTRPoint < TTRLINELENGTH; TTRPoint++ ){
-                    int xPoint = (TTR - (int) Math.round(TTRLINELENGTH/2.0) + TTRPoint);
-                    if (xPoint < 1 ){
-                        xPoint = 0;
-                    } else if (xPoint > xValueArray.length-1){
-                        xPoint = xValueArray.length-1;
+                int SCALE = 20;
+                if (isMelt) {
+                    for (int TTRPoint = 0; TTRPoint < TTRLINELENGTH; TTRPoint++) {
+                        TTRXValues[TTRPoint] = xValueArray[TTR];
+                        TTRYValues[TTRPoint] = yValueArray[TTR] - (int) Math.round(TTRLINELENGTH / 2.0) * SCALE + TTRPoint * SCALE;
                     }
-                    TTRXValues[TTRPoint] = xValueArray[xPoint];
-                    TTRYValues[TTRPoint] = yValueAtTTR;
+                } else {
+                    for (int TTRPoint = 0; TTRPoint < TTRLINELENGTH; TTRPoint++) {
+                        int xPoint = (TTR - (int) Math.round(TTRLINELENGTH / 2.0) + TTRPoint);
+                        if (xPoint < 1) {
+                            xPoint = 0;
+                        } else if (xPoint > xValueArray.length - 1) {
+                            xPoint = xValueArray.length - 1;
+                        }
+                        TTRXValues[TTRPoint] = xValueArray[xPoint];
+                        TTRYValues[TTRPoint] = yValueAtTTR;
+                    }
                 }
                 panel.addLinePlot(source, Color.red, TTRXValues, TTRYValues);
             }

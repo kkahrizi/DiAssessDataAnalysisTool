@@ -50,3 +50,8 @@ Version 2.04 Updates:
 
 Version 2.05 Updates:
 - Modified melt curve analyses to look at derivative of melt curve, instead of absolute RFU values
+
+Version 2.06 Updates:
+- Included peak calling of melt curves
+- Output file now default opens to same directory as input thermocycler files
+- Cleaned up UI a bit

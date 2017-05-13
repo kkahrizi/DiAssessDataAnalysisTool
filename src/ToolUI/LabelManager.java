@@ -223,7 +223,7 @@ public class LabelManager {
             }
 
         }
-        OutputFrame outputView = new OutputFrame(allConcat, OutputFrame.PCRTUBES, null, new Font("Tahoma",Font.PLAIN,36));
+        OutputFrame outputView = new OutputFrame(allConcat, OutputFrame.PCRTUBES, null, new Font("Tahoma",Font.PLAIN,36),outputFolder);
 
         
          

@@ -94,6 +94,16 @@ public class ThermoReplicate implements Comparable {
     public void setSignal(double[] rfuData){
         signal = rfuData;
     }
+    
+    public int getPeakIndex(){
+        int peakIndex = 0;
+        for (int i = 0; i < signal.length; i++){
+            if (signal[i] > signal[peakIndex]) {
+                    peakIndex = i;
+            }
+        }
+        return peakIndex;
+    }
 
     public double getMidpointTTR(double secondsPerCycle){
         int startCycle = 10;

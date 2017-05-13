@@ -8,6 +8,7 @@ package ToolUI;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.FileDialog;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.image.BufferedImage;
@@ -15,6 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -36,11 +39,13 @@ public class OutputFrame extends javax.swing.JFrame {
     public final static int THERMOCYCLER = 0;
     public final static int PCRTUBES = 1;
     public final Font BIGFONT = new Font("Tahoma", Font.PLAIN, 48);
+    public File outputFolder;
     public Font official_font;
     
-    public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData, Font officialFont) {
+    public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData, Font officialFont, File originalFolder) {
         initComponents();
         official_font = officialFont;
+        outputFolder = originalFolder;
         DiAssessDataAnalysisToolUI.applyFont(this, official_font);
         if(source == THERMOCYCLER){
             jButton2.setText("Save plots to .png");
@@ -138,37 +143,92 @@ public class OutputFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
     
+    
+    
+    public File getFileSelection(String extensionString){
+        FileDialog chooser = new FileDialog(this,"Save output", FileDialog.SAVE);
+        chooser.setDirectory(outputFolder.getAbsolutePath());
+        chooser.setVisible(true);
+        setFileChooserFont(chooser.getComponents());
+        String chosenFile = chooser.getFile();
+        String chosenFolder = chooser.getDirectory();
+        File folder = new File(chosenFolder);
+        if (chosenFile == null){
+            return null;
+        }
+        if (!(chosenFile.endsWith(extensionString))){
+            JOptionPane.showMessageDialog(this,chosenFile + " is not an " + extensionString + 
+                    " format file. Please save as <File Name>" + extensionString);
+            return getFileSelection(extensionString);
+        }
+        File myChoice = new File(folder,chosenFile);
+        return myChoice;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     //Save TTR table
     private void jButton2ActionPerformedThermo(java.awt.event.ActionEvent evt) {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setPreferredSize(new Dimension(2000,1000));
-        setFileChooserFont(chooser.getComponents());
-        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        File chosenFile = null;
-        int returnVal = chooser.showOpenDialog(this);
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            chosenFile = chooser.getSelectedFile();
-            String filePath = chosenFile.getAbsolutePath();
-            System.out.println(filePath);
-            if (!(filePath.endsWith(".csv"))) {
-
-                chosenFile = new File(filePath + ".csv");
-
-            }
-        }
+        File choice = getFileSelection(".csv");
         try {
-            // Write TTR data
-            writeTTRData(chosenFile,TTRDat);
-        } catch (IOException e) {
-            JLabel label = new JLabel("Failed to save file " + chosenFile.getAbsolutePath());
+            writeTTRData(choice, TTRDat);
+            JLabel label = new JLabel("Successfully saved to " + choice.getAbsolutePath());
             label.setFont(official_font);
-            JOptionPane.showMessageDialog(this, label, "ERROR", JOptionPane.WARNING_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(this,label);
+        } catch (IOException ex) {
+            Logger.getLogger(OutputFrame.class.getName()).log(Level.SEVERE, null, ex);
+            JLabel label = new JLabel("Unable to save to " + choice.getAbsolutePath() 
+                    + " Please make sure the file is not opened in any other application. ");
+            label.setFont(official_font);
+            JOptionPane.showMessageDialog(this,label);
         }
-        JLabel label = new JLabel("Success! Saved to " + chosenFile.getAbsolutePath());
-        label.setFont(official_font);
-        JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
-        return;
+
+
+            
+            
+            
+            
+            
+            
+            
+//        JFileChooser chooser = new JFileChooser();
+//        chooser.setPreferredSize(new Dimension(2000,1000));
+//        setFileChooserFont(chooser.getComponents());
+//        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//        File chosenFile = null;
+//        int returnVal = chooser.showOpenDialog(this);
+//        if (returnVal == JFileChooser.APPROVE_OPTION) {
+//            chosenFile = chooser.getSelectedFile();
+//            String filePath = chosenFile.getAbsolutePath();
+//            System.out.println(filePath);
+//            if (!(filePath.endsWith(".csv"))) {
+//
+//                chosenFile = new File(filePath + ".csv");
+//
+//            }
+//        }
+//        try {
+//            // Write TTR data
+//            writeTTRData(chosenFile,TTRDat);
+//        } catch (IOException e) {
+//            JLabel label = new JLabel("Failed to save file " + chosenFile.getAbsolutePath());
+//            label.setFont(official_font);
+//            JOptionPane.showMessageDialog(this, label, "ERROR", JOptionPane.WARNING_MESSAGE);
+//            return;
+//        }
+//        JLabel label = new JLabel("Success! Saved to " + chosenFile.getAbsolutePath());
+//        label.setFont(official_font);
+//        JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
+//        return;
+       
     }
     
     //Class to store a label with summary statistics
@@ -207,8 +267,10 @@ public class OutputFrame extends javax.swing.JFrame {
         ArrayList<StatLabelCombo> theseStatistics = new ArrayList<StatLabelCombo>();
   
         int index = 0;
-        while (!data.isEmpty()){
-            TTRTuple thisPair = data.remove(0);
+       
+       
+        for (int j = 0; j < data.size(); j++ ){
+            TTRTuple thisPair = data.get(j);
             String thisLabel = thisPair.Label;
             double thisTime = thisPair.TTR;
             TTR_rows[index] = thisLabel + "," + Double.toString(thisTime);
@@ -225,7 +287,7 @@ public class OutputFrame extends javax.swing.JFrame {
             }
             StatLabelCombo comboToAdd = new StatLabelCombo(thisLabel);
             comboToAdd.addValue(thisTime);
-            for (int i = 0; i < data.size(); i++) {
+            for (int i = j+1; i < data.size(); i++) {
                 if (data.get(i).Label.equalsIgnoreCase(thisLabel)) {
                     comboToAdd.addValue(data.get(i).TTR);
                 }                
@@ -233,7 +295,7 @@ public class OutputFrame extends javax.swing.JFrame {
             theseStatistics.add(comboToAdd);
             
         } 
-        
+       
         
         for (int i = 0; i < TTR_rows.length; i++){
             sb.append(TTR_rows[i]);
@@ -271,22 +333,7 @@ public class OutputFrame extends javax.swing.JFrame {
     
     //Save image to file
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        JFileChooser chooser = new JFileChooser();
-        chooser.setPreferredSize(new Dimension(2000, 1000));
-        setFileChooserFont(chooser.getComponents());
-        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        File chosenFile = null;
-        int returnVal = chooser.showOpenDialog(this);
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            chosenFile = chooser.getSelectedFile();
-            String filePath = chosenFile.getAbsolutePath();
-            System.out.println(filePath);
-            if (!(filePath.endsWith(".png") || filePath.endsWith(".jpeg") || filePath.endsWith(".jpg"))) {
-
-                chosenFile = new File(filePath + ".png");
-
-            }
-        }
+        File chosenFile = getFileSelection(".png");
         try {
             // retrieve image
             ImageIO.write(toSave, "png", chosenFile);
@@ -300,6 +347,34 @@ public class OutputFrame extends javax.swing.JFrame {
         label.setFont(official_font);
         JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
         return;
+        
+//        JFileChooser chooser = new JFileChooser();
+//        chooser.setPreferredSize(new Dimension(2000, 1000));
+//        setFileChooserFont(chooser.getComponents());
+//        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//        File chosenFile = null;
+//        int returnVal = chooser.showOpenDialog(this);
+//        if (returnVal == JFileChooser.APPROVE_OPTION) {
+//            chosenFile = chooser.getSelectedFile();
+//            String filePath = chosenFile.getAbsolutePath();
+//            System.out.println(filePath);
+//            if (!(filePath.endsWith(".png") || filePath.endsWith(".jpeg") || filePath.endsWith(".jpg"))) {
+//
+//                chosenFile = new File(filePath + ".png");
+//
+//            }
+//        }
+//        try {
+//            // retrieve image
+//            ImageIO.write(toSave, "png", chosenFile);
+//        } catch (IOException e) {
+//            JLabel label = new JLabel("Failed to save file " + chosenFile.getAbsolutePath());
+//            label.setFont(official_font);
+//            JOptionPane.showMessageDialog(this, label, "ERROR", JOptionPane.WARNING_MESSAGE);
+//            return;
+//      }
+        
+        
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed

@@ -123,7 +123,7 @@ public class ThermoAnalysis extends javax.swing.JFrame {
     private void fileSelectorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fileSelectorActionPerformed
             JFileChooser chooser = new JFileChooser();
             setFileChooserFont(chooser.getComponents());
-            chooser.setPreferredSize(new Dimension(2000,1000));
+           
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             
             int returnVal = chooser.showOpenDialog(this);
