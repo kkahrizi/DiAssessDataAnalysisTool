@@ -55,3 +55,6 @@ Version 2.06 Updates:
 - Included peak calling of melt curves
 - Output file now default opens to same directory as input thermocycler files
 - Cleaned up UI a bit
+
+Version 2.07 Updates:
+- Modified thermo loading frame to be resizable (problematically big on non-high DPI screens)
