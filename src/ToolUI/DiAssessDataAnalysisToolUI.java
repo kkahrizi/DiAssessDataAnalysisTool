@@ -171,7 +171,7 @@ public class DiAssessDataAnalysisToolUI extends javax.swing.JFrame {
 
         jLabel1.setFont(new java.awt.Font("Arial", 1, 50)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setText("DiAssess Data Analysis Tool 2.07");
+        jLabel1.setText("DiAssess Data Analysis Tool 2.08");
         jLabel1.setToolTipText("");
 
         ThermocyclerDataButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N

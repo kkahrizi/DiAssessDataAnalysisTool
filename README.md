@@ -58,3 +58,7 @@ Version 2.06 Updates:
 
 Version 2.07 Updates:
 - Modified thermo loading frame to be resizable (problematically big on non-high DPI screens)
+
+Version 2.08 Updates:
+- Output TTR table now includes well coordinates, column headers
+- Extended support for non-SYBR dyes

@@ -34,9 +34,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int FILES_FOUND = 1;
     public final int EQUAL_NUMBER = 0;
     public final int STITCH_TOGETHER = 1;
-    public final String SIGNAL_FILE_TOKEN = "Quantification Amplification Results_SYBR.csv";
+    public final String SIGNAL_FILE_TOKEN = "Quantification Amplification Results";
     public final String SAMPLE_FILE_TOKEN = "Quantification Summary_0.csv";
-    public final String MELTCURVE_SIGNAL_TOKEN = "Melt Curve Derivative Results_SYBR.csv";
+    public final String MELTCURVE_SIGNAL_TOKEN = "Melt Curve Derivative Results";
     public final String MELTCURVE_SAMPLE_TOKEN = "Melt Curve Summary_0.csv";
     public final String ROOT_SPLITTER = " - ";
     public final int ORGANIZE = 2;
@@ -328,12 +328,13 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             
             //This for loop finds the column of where temperature data is found and stores that column index in 
             //temperatureCol
-            for (int k = 0; k < row.length; k++) {
-                if (isMeltCurve && row[k].equals("Temperature")) {
-                    temperatureCol = k;
+            if (temperatureCol == -1){
+                for (int k = 0; k < row.length; k++) {
+                    if (isMeltCurve && row[k].equals("Temperature")) {
+                        temperatureCol = k;
+                    }
                 }
             }
-            
             
             
             int offsetAttempt = 0;
@@ -427,6 +428,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             
             for (int j = 0; j < allReplicates.size(); j++){
                 toPlot.add(allReplicates.get(j).getSignal());
+                String coordinates = allReplicates.get(j).getCoordinates();
                 double TTR = 0;
                 if(isMidpoint && !isMeltCurve){
                     TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle);
@@ -434,7 +436,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 if (isMeltCurve){
                     TTR = meltCurveTemperatures.getSignal()[allReplicates.get(j).getPeakIndex()];
                 }
-                TTRData.add(new TTRTuple(label,TTR));
+                TTRData.add(new TTRTuple(label,TTR,coordinates));
             }
             BufferedImage plotImage = plotGraph(thisSample.getLabel(),toPlot,
                     true,thisPanel, allReplicates, secondsPerCycle, labelTTR, isMeltCurve, meltCurveTemperatures );

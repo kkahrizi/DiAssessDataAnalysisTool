@@ -273,7 +273,8 @@ public class OutputFrame extends javax.swing.JFrame {
             TTRTuple thisPair = data.get(j);
             String thisLabel = thisPair.Label;
             double thisTime = thisPair.TTR;
-            TTR_rows[index] = thisLabel + "," + Double.toString(thisTime);
+            String coordinate = thisPair.wellCoordinate;
+            TTR_rows[index] = coordinate + "," + thisLabel + "," + Double.toString(thisTime);
             index++;
             boolean alreadySummarized = false;
             for (int i = 0; i < theseStatistics.size(); i++){
@@ -296,7 +297,7 @@ public class OutputFrame extends javax.swing.JFrame {
             
         } 
        
-        
+        sb.append("Well_Coordinate, Sample, TTR (mins)\n");
         for (int i = 0; i < TTR_rows.length; i++){
             sb.append(TTR_rows[i]);
             sb.append('\n');

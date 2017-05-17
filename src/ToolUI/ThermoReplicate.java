@@ -63,6 +63,10 @@ public class ThermoReplicate implements Comparable {
         return sampleName;
     }
     
+    public boolean hasLabel(){
+        return sampleName == null;
+    }
+    
     public String getCoordinates(){
         return wellCoordinate;
     }
