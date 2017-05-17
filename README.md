@@ -62,3 +62,6 @@ Version 2.07 Updates:
 Version 2.08 Updates:
 - Output TTR table now includes well coordinates, column headers
 - Extended support for non-SYBR dyes
+
+Version 2.09 Updates:
+- Set fixed y-axis bounds for both melt curves and amplification curves

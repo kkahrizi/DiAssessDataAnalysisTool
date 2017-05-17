@@ -42,6 +42,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int ORGANIZE = 2;
     public final int PLOTWIDTH=500;
     public final int PLOTHEIGHT=600;
+    public final int MINY = 0;
+    public final int MAXY = 30000;
+    public final int MAXY_MELT=MAXY/10;
     public final String[] AXISLABELS = {"Minutes", "RFU"};
     public final String[] MELTAXISLABELS = {"Temperature (C)", "RFU"};
     public final Color[] colors = {Color.BLUE,Color.GREEN,Color.CYAN,Color.GRAY, Color.BLACK,Color.ORANGE,Color.MAGENTA};
@@ -312,6 +315,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         if (sampleFile != null){
             hasSamples = true;
             sampleFileData = readFile(sampleFile);
+        } else {
+            JOptionPane.showMessageDialog(null," Error. There is no sample information file \"Summary_0.csv\"");
         }
         System.out.println("Signal file: " + signalFile.getName());
         System.out.println("Sample file: " + sampleFile.getName());
@@ -389,7 +394,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                                 j--;
                                 continue;
                             } catch (NumberFormatException notGood) {
-                                if (!sampleName.equals("NaN")) {
+                                if (!sampleName.equals("NaN") && !sampleName.equals("None")) {
                                     foundSample = true;
                                     break;
                                 }
@@ -696,6 +701,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 //            
 //        }
         panel.setFixedBounds(0, 0, Math.ceil(maxXvalue/10.0)*10);
+        if (!isMelt) {
+            panel.setFixedBounds(1, MINY, MAXY);
+        } else {
+            panel.setFixedBounds(1, MINY, MAXY_MELT);
+        }
         if (isMelt){
             panel.setFixedBounds(0,minXvalue,Math.ceil(maxXvalue/10.0)*10);
         }
