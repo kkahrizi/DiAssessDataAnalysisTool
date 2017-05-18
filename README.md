@@ -64,4 +64,9 @@ Version 2.08 Updates:
 - Extended support for non-SYBR dyes
 
 Version 2.09 Updates:
+- Fixed bug where sometime melt curve labels were not correctly being read
 - Set fixed y-axis bounds for both melt curves and amplification curves
+
+Version 2.10 Updats:
+- Fixed bug where sample names that were just numbers were not being recognized
+- Allowed for negative values in melt curve

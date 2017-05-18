@@ -34,6 +34,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int FILES_FOUND = 1;
     public final int EQUAL_NUMBER = 0;
     public final int STITCH_TOGETHER = 1;
+    public final String SAMPLE_HEADER = "Sample";
+    public final String WELL_HEADER = "Well";
     public final String SIGNAL_FILE_TOKEN = "Quantification Amplification Results";
     public final String SAMPLE_FILE_TOKEN = "Quantification Summary_0.csv";
     public final String MELTCURVE_SIGNAL_TOKEN = "Melt Curve Derivative Results";
@@ -42,9 +44,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int ORGANIZE = 2;
     public final int PLOTWIDTH=500;
     public final int PLOTHEIGHT=600;
-    public final int MINY = 0;
+    public final int MINY = -500;
     public final int MAXY = 30000;
-    public final int MAXY_MELT=MAXY/10;
+    public final int MINY_MELT = -500;
+    public final int MAXY_MELT = MAXY/10;
     public final String[] AXISLABELS = {"Minutes", "RFU"};
     public final String[] MELTAXISLABELS = {"Temperature (C)", "RFU"};
     public final Color[] colors = {Color.BLUE,Color.GREEN,Color.CYAN,Color.GRAY, Color.BLACK,Color.ORANGE,Color.MAGENTA};
@@ -367,52 +370,58 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             }            
         }
         ArrayList<ThermoSample> allData = new ArrayList<ThermoSample>();
-
+        int sampleIndex = -1; //Variable to store the sample info index
+        int wellIndex = -1; //Variable to store the well info index
         if(hasSamples){
             ArrayList<ThermoReplicate> labeledReplicates = new ArrayList<ThermoReplicate>();
             while(!allUnlabeledReplicates.isEmpty()){
                 ThermoReplicate thisReplicate = allUnlabeledReplicates.remove(0);
                 for (int i = 0; i < sampleFileData.size(); i++){
                     String[] sampleRow = sampleFileData.get(i);
+                    
+                    //This for loop finds the sampleIndex and wellIndex by looking for the first instance where the header is "Sample" or Well
+                    for (int headerIndex = 0; headerIndex < sampleRow.length && (sampleIndex == -1 || wellIndex == -1); headerIndex++) {
+                        String header = sampleRow[headerIndex];
+                        
+                        if (header.equalsIgnoreCase(SAMPLE_HEADER) && sampleIndex == -1) {
+                            sampleIndex = headerIndex;
+                            continue;
+                        }
+                        if (header.equalsIgnoreCase(WELL_HEADER) && wellIndex == -1){
+                            wellIndex = headerIndex;
+                            continue;
+                        }
+                    }
+                   
+                    if (sampleIndex == -1){
+                        JOptionPane.showMessageDialog(this, "In the file " + sampleFile.getAbsolutePath() +
+                                ", could not find a header called \"" + SAMPLE_HEADER + "\"");
+                        return false;
+                    } 
+                    if (wellIndex == -1){
+                        JOptionPane.showMessageDialog(this, "In the file " + sampleFile.getAbsolutePath() +
+                                ", could not find a header called \"" + WELL_HEADER + "\"");
+                        return false;
+                    }
+                    
                     String wellCoordinates = "";
                     String sampleName = "";
-                    int j = 0;
-                    while(wellCoordinates.equals("")){
-                        wellCoordinates = sampleRow[j];
-                        j++;
+                    
+                    
+                    wellCoordinates = sampleRow[wellIndex];
+                    
+                    if(wellCoordinates.equalsIgnoreCase(WELL_HEADER)){
+                        continue;
                     }
+                   
                     if (thisReplicate.checkCoordinate(wellCoordinates)) {
-                        j = sampleRow.length - 1;
-                        boolean foundSample = false;
-                        while (!foundSample) {
-                            if (j < 0) {
-                                break;
-                            }
-                            sampleName = sampleRow[j];
-                            try {
-                                Double.parseDouble(sampleName);
-                                j--;
-                                continue;
-                            } catch (NumberFormatException notGood) {
-                                if (!sampleName.equals("NaN") && !sampleName.equals("None")) {
-                                    foundSample = true;
-                                    break;
-                                }
-                                j--;
-                                continue;
-                            }
-                        }
-                        if(foundSample){
-                            thisReplicate.label(sampleName);
-                            labeledReplicates.add(thisReplicate);
-                            break;
-                        } else {
-                            addText("WARNING: For " + sampleFile.getName() + ", "
-                                    + "could not find a sample name for " + wellCoordinates + ". Skipping...");
-                            labeledReplicates.add(thisReplicate);
-                            break;
-                        }
+                        sampleName = sampleRow[sampleIndex];
+                        thisReplicate.label(sampleName);
+                        labeledReplicates.add(thisReplicate);
+                    } else {
+                        continue;
                     }
+
                 }
             }
             allData = organizeReplicates(labeledReplicates);
@@ -704,7 +713,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         if (!isMelt) {
             panel.setFixedBounds(1, MINY, MAXY);
         } else {
-            panel.setFixedBounds(1, MINY, MAXY_MELT);
+            panel.setFixedBounds(1, MINY_MELT, MAXY_MELT);
         }
         if (isMelt){
             panel.setFixedBounds(0,minXvalue,Math.ceil(maxXvalue/10.0)*10);
