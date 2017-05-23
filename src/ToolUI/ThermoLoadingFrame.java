@@ -34,6 +34,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int FILES_FOUND = 1;
     public final int EQUAL_NUMBER = 0;
     public final int STITCH_TOGETHER = 1;
+    public final int DEFAULT_AMPLITUDE_THRESHOLD = 2000;
     public final String SAMPLE_HEADER = "Sample";
     public final String WELL_HEADER = "Well";
     public final String SIGNAL_FILE_TOKEN = "Quantification Amplification Results";
@@ -75,7 +76,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         DiAssessDataAnalysisToolUI.applyFont(this, officialFont);
         labelTTRButton.setSelected(true);
         midpointButton.setSelected(true);
+        amplitudeThresholdField.setEditable(true);
+        amplitudeThresholdField.setText(Integer.toString(DEFAULT_AMPLITUDE_THRESHOLD));
         useMidpointMethod = true;
+        
+        
         this.getRootPane().setDefaultButton(waitContinueButton);
       
         myTextField.setEditable(false);
@@ -84,14 +89,21 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         passedFolder = folder;
         allCombos = new ArrayList<SignalSampleCombo>();
         int success = loadFiles(folder);
-        
         if(success == FILES_FOUND){
             waitContinueButton.setText("Continue!");
             waitContinueButton.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent e){
+                    int amplitudeThreshold = DEFAULT_AMPLITUDE_THRESHOLD;
                     if(!midpointButton.isSelected()){
                         useMidpointMethod = false;
-                    } 
+                    } else {
+                         try{
+                            amplitudeThreshold = Integer.parseInt(amplitudeThresholdField.getText());
+                         } catch (NumberFormatException error){
+                             JOptionPane.showMessageDialog(null, "Please make sure amplitude threshold is an integer");
+                             return;
+                         }
+                    }
                     
                     double secondsPerCycle;
                     try{
@@ -142,7 +154,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     }
                     for (int i = 0; i < allCombos.size(); i++) {
 
-                        boolean successful = makeAndSavePlots(allCombos.get(i), useMidpointMethod, secondsPerCycle, 
+                        boolean successful = makeAndSavePlots(allCombos.get(i), useMidpointMethod, amplitudeThreshold, secondsPerCycle, 
                                 labelTTR, plotsPerRow, autoYAxis, minY_option, maxY_option);
                         if (!successful) {
                             addText("Something went wrong. Ask Kamin to investigate");
@@ -323,7 +335,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         
     
     //
-    public boolean makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, 
+    public boolean makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, int amplitudeThreshold,
             double secondsPerCycle, boolean labelTTR, int plotsPerRow, boolean autoYAxis, double minY, double maxY){
         ArrayList<TTRTuple> TTRData = new ArrayList<TTRTuple>();
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
@@ -467,7 +479,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 String coordinates = allReplicates.get(j).getCoordinates();
                 double TTR = 0;
                 if(isMidpoint && !isMeltCurve){
-                    TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle);
+                    TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle, amplitudeThreshold);
                 } else if (!isMeltCurve){
                     TTR = allReplicates.get(j).getInflectionPointTTR(secondsPerCycle, 0, NUMBACK);
                 }
@@ -477,8 +489,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 TTRData.add(new TTRTuple(label,TTR,coordinates));
             }
             BufferedImage plotImage = plotGraph(thisSample.getLabel(),toPlot,
-                    true,thisPanel, allReplicates, secondsPerCycle, isMidpoint, labelTTR, isMeltCurve, meltCurveTemperatures, autoYAxis, 
-                    minY, maxY);
+                    true,thisPanel, allReplicates, secondsPerCycle, isMidpoint, amplitudeThreshold, 
+                    labelTTR, isMeltCurve, meltCurveTemperatures, autoYAxis, minY, maxY);
             BufferedImage labeledImage = null;
             if (isMeltCurve){
                 labeledImage = addText(plotImage, label + " Melt", 40, true, 0);
@@ -664,7 +676,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     
     public BufferedImage plotGraph(String source, ArrayList<double[]> yValues, 
             boolean newPlot, Plot2DPanel toPlot, ArrayList<ThermoReplicate> allReplicates, 
-            double secondsPerCycle, boolean isMidpoint, boolean plotTTR, boolean isMelt, ThermoReplicate meltTemperatures,
+            double secondsPerCycle, boolean isMidpoint, int amplitudeThreshold, boolean plotTTR, boolean isMelt, ThermoReplicate meltTemperatures,
             boolean autoYAxis, double minY, double maxY){
         
               
@@ -691,7 +703,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 xValueArray = meltTemperatures.getSignal();
             }
             if(plotTTR){
-                int TTR = plotReplicate.getMidpointTTRIndex();
+                int TTR = plotReplicate.getMidpointTTRIndex(amplitudeThreshold);
                 if (!isMidpoint){
                     TTR = plotReplicate.getInflectionPointTTRIndex(secondsPerCycle, 0, NUMBACK);
                 }
@@ -855,6 +867,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         maxTextField = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
+        jLabel9 = new javax.swing.JLabel();
+        amplitudeThresholdField = new javax.swing.JTextField();
+        jLabel10 = new javax.swing.JLabel();
 
         jTextArea1.setColumns(20);
         jTextArea1.setRows(5);
@@ -881,6 +896,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         ttrMethodButtonGroup.add(inflectionButton);
         inflectionButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         inflectionButton.setText("Inflection Point");
+        inflectionButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                inflectionButtonActionPerformed(evt);
+            }
+        });
 
         ttrMethodButtonGroup.add(midpointButton);
         midpointButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -969,70 +989,96 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         maxTextField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
 
         jLabel1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel1.setText("MIN");
 
         jLabel7.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel7.setText("MAX");
+
+        jLabel9.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel9.setText("Amplitude Threshold:");
+
+        amplitudeThresholdField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        amplitudeThresholdField.setText("4000");
+        amplitudeThresholdField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                amplitudeThresholdFieldActionPerformed(evt);
+            }
+        });
+
+        jLabel10.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
+        jLabel10.setToolTipText("A difference in ampiltude between baseline and midpoint value smaller than this threshold will result in TTR being the maximum possible for each plot.");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(waitContinueButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(labelTTRButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(autoSaveButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(44, 44, 44))
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 591, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(jSeparator3)
-                    .addComponent(jSeparator1)
-                    .addComponent(jSeparator2))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(773, 773, 773)
+                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel9)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(amplitudeThresholdField, javax.swing.GroupLayout.PREFERRED_SIZE, 174, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 591, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jSeparator3)
+                            .addComponent(jSeparator1)
+                            .addComponent(jSeparator2, javax.swing.GroupLayout.DEFAULT_SIZE, 611, Short.MAX_VALUE))))
                 .addContainerGap())
             .addGroup(layout.createSequentialGroup()
                 .addGap(597, 597, 597)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, 269, Short.MAX_VALUE)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(fixedBoundsButton, javax.swing.GroupLayout.DEFAULT_SIZE, 184, Short.MAX_VALUE)
-                        .addGap(108, 108, 108))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(automateIndividuallyButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGap(78, 78, 78))
-                    .addComponent(inflectionButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(midpointButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(autoSaveButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(labelTTRButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(waitContinueButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(44, 44, 44))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(secondsPerCycleField))
-                                .addGap(44, 44, 44))))))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLabel1)
-                    .addComponent(jLabel7))
-                .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(minTextField)
-                    .addComponent(maxTextField, javax.swing.GroupLayout.DEFAULT_SIZE, 153, Short.MAX_VALUE))
-                .addGap(44, 44, 44))
+                            .addComponent(inflectionButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(midpointButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(automateIndividuallyButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(fixedBoundsButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addContainerGap())
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(82, 82, 82)
+                                .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE)))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.TRAILING))
+                        .addGap(103, 103, 103)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(secondsPerCycleField)
+                            .addComponent(minTextField)
+                            .addComponent(maxTextField, javax.swing.GroupLayout.DEFAULT_SIZE, 153, Short.MAX_VALUE))
+                        .addGap(44, 44, 44))))
         );
 
-        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jTextField1, secondsPerCycleField});
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {amplitudeThresholdField, jTextField1, maxTextField, minTextField, secondsPerCycleField});
+
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jLabel1, jLabel7});
 
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1048,17 +1094,25 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                             .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jLabel5))
                         .addGap(13, 13, 13)
-                        .addComponent(jSeparator3, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(midpointButton, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jSeparator3, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(inflectionButton)))
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(midpointButton, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(78, 78, 78)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(amplitudeThresholdField, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 28, Short.MAX_VALUE)
+                        .addComponent(inflectionButton)
                         .addGap(18, 18, 18)
                         .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 7, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(18, 18, 18)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                                 .addComponent(automateIndividuallyButton)
@@ -1095,7 +1149,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 .addContainerGap())
         );
 
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jTextField1, maxTextField, minTextField, secondsPerCycleField});
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {amplitudeThresholdField, jTextField1, maxTextField, minTextField, secondsPerCycleField});
 
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jSeparator1, jSeparator2, jSeparator3});
 
@@ -1109,6 +1163,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 
     private void midpointButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_midpointButtonActionPerformed
         // TODO add your handling code here:
+
+        amplitudeThresholdField.setText(Integer.toString(DEFAULT_AMPLITUDE_THRESHOLD));
+        amplitudeThresholdField.setEditable(true);
+
     }//GEN-LAST:event_midpointButtonActionPerformed
 
     private void secondsPerCycleFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_secondsPerCycleFieldActionPerformed
@@ -1157,12 +1215,22 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         // TODO add your handling code here:
     }//GEN-LAST:event_minTextFieldActionPerformed
 
+    private void inflectionButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_inflectionButtonActionPerformed
+        // TODO add your handling code here:
+        amplitudeThresholdField.setEditable(false);
+    }//GEN-LAST:event_inflectionButtonActionPerformed
+
+    private void amplitudeThresholdFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_amplitudeThresholdFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_amplitudeThresholdFieldActionPerformed
+
     /**
      * @param args the command line arguments
      */
    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup AxisButtonGroup;
+    private javax.swing.JTextField amplitudeThresholdField;
     private javax.swing.JToggleButton autoSaveButton;
     private javax.swing.JRadioButton automateIndividuallyButton;
     private javax.swing.ButtonGroup buttonGroup2;
@@ -1170,6 +1238,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     private javax.swing.JRadioButton fixedBoundsButton;
     private javax.swing.JRadioButton inflectionButton;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -1177,6 +1246,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
     private javax.swing.JScrollBar jScrollBar1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;

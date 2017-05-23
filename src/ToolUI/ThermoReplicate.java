@@ -155,7 +155,7 @@ public class ThermoReplicate implements Comparable {
                 return ((double)i )*secondsPerCycle/60.0;
             }
         }
-        return (double)signal.length * secondsPerCycle / 60.0;
+        return (double)(signal.length - 1) * secondsPerCycle / 60.0;
         
     }
     
@@ -182,40 +182,52 @@ public class ThermoReplicate implements Comparable {
                 return i;
             }
         }
-        return signal.length;
+        return signal.length - 1;
         
     }
     
-    public double getMidpointTTR(double secondsPerCycle){
+    public double getMidpointTTR(double secondsPerCycle, int amplitudeThreshold){
+        double ampThres = (double) amplitudeThreshold;
+        double defaultTTR = (signal.length-1)*secondsPerCycle/60.0;
         int startCycle = 10;
         int endCycle = 16;
         double baseValue = getBaseline(startCycle,endCycle);
         double maxValue = getMax();
         double halfWay = (baseValue + maxValue)/2;
+        if (halfWay - baseValue < ampThres){
+            TTR = defaultTTR;
+            return defaultTTR;
+        }
         for (int i = 0; i < signal.length; i++){
             if (signal[i] > halfWay){
                 TTR = i*secondsPerCycle/60.0;
                 return TTR;
             }
         }
-        TTR =  (signal.length-1)*secondsPerCycle/60.0;
+        TTR =  defaultTTR;
         return TTR;
     }
     
-    public int getMidpointTTRIndex(){
+    public int getMidpointTTRIndex(int amplitudeThreshold) {
+        double ampThres = (double) amplitudeThreshold;
+
         int startCycle = 10;
         int endCycle = 16;
-        double baseValue = getBaseline(startCycle,endCycle);
+        double baseValue = getBaseline(startCycle, endCycle);
         double maxValue = getMax();
         double halfWay = (baseValue + maxValue)/2;
+        if (halfWay - baseValue < ampThres){
+            return signal.length - 1;
+            
+        }
         for (int i = 0; i < signal.length; i++){
             if (signal[i] > halfWay){
-                TTR = i;
+              
                 return i;
             }
         }
-        TTR =  signal.length-1;
-        return signal.length;
+        
+        return signal.length - 1;
     }
         
     //Returns the average value of the signal array between 

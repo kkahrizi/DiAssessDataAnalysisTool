@@ -75,3 +75,6 @@ Version 2.11 Updates:
 - Created an option to automatically save Thermocycler data plots and tables to same location as input data
 - Created an option to fix y-axes or to allow automatic re-scaling of each plot individually
 - Implemented inflection point TTR algorithm - TTR is the first peak value of the second derivative (where second derivative looks forward 3 values)
+
+Version 2.12 Updates:
+- Created an option to set a threshold for midpoint TTR formula
