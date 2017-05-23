@@ -42,7 +42,7 @@ public class OutputFrame extends javax.swing.JFrame {
     public File outputFolder;
     public Font official_font;
     
-    public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData, Font officialFont, File originalFolder) {
+    public OutputFrame(BufferedImage outputImage, int source, ArrayList<TTRTuple> TTRData, Font officialFont, File originalFolder, boolean autoSave, boolean isMelt) {
         initComponents();
         official_font = officialFont;
         outputFolder = originalFolder;
@@ -62,6 +62,27 @@ public class OutputFrame extends javax.swing.JFrame {
         toSave = outputImage;
         jPanel1.setLayout(new FlowLayout());
         jPanel1.add(new JLabel(new ImageIcon(outputImage)));
+        
+        if(autoSave){
+            String imageFileName = "Amplification_plots.png";
+            String tableFileName = "TTR.csv";
+            if (isMelt){
+                imageFileName = "Melt_curves.png";
+                tableFileName = "Melt_peaks.csv";
+            }
+            File outputImageFile = new File(originalFolder, imageFileName);
+            File outputTableFile = new File(originalFolder, tableFileName);
+            writeTable(outputTableFile);
+            saveImage(outputImageFile);
+            
+            this.dispose();
+            return;
+           
+        }
+        
+        
+        
+        
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.pack();
         this.setExtendedState(this.getExtendedState()|JFrame.MAXIMIZED_BOTH );
@@ -168,16 +189,7 @@ public class OutputFrame extends javax.swing.JFrame {
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    //Save TTR table
-    private void jButton2ActionPerformedThermo(java.awt.event.ActionEvent evt) {
-        File choice = getFileSelection(".csv");
+    private void writeTable(File choice){
         try {
             writeTTRData(choice, TTRDat);
             JLabel label = new JLabel("Successfully saved to " + choice.getAbsolutePath());
@@ -190,6 +202,17 @@ public class OutputFrame extends javax.swing.JFrame {
             label.setFont(official_font);
             JOptionPane.showMessageDialog(this,label);
         }
+    }
+    
+    
+    
+    
+    
+    
+    //Save TTR table
+    private void jButton2ActionPerformedThermo(java.awt.event.ActionEvent evt) {
+        File choice = getFileSelection(".csv");
+        writeTable(choice);
 
 
             
@@ -332,9 +355,7 @@ public class OutputFrame extends javax.swing.JFrame {
         }
     }
     
-    //Save image to file
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        File chosenFile = getFileSelection(".png");
+    private void saveImage(File chosenFile){
         try {
             // retrieve image
             ImageIO.write(toSave, "png", chosenFile);
@@ -347,6 +368,12 @@ public class OutputFrame extends javax.swing.JFrame {
         JLabel label = new JLabel("Success! Saved to " + chosenFile.getAbsolutePath());
         label.setFont(official_font);
         JOptionPane.showMessageDialog(this, label, "SUCCESS", JOptionPane.PLAIN_MESSAGE);
+    }
+    
+    //Save image to file
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        File chosenFile = getFileSelection(".png");
+        saveImage(chosenFile);
         return;
         
 //        JFileChooser chooser = new JFileChooser();

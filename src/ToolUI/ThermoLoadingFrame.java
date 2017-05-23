@@ -48,6 +48,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int MAXY = 30000;
     public final int MINY_MELT = -500;
     public final int MAXY_MELT = MAXY/10;
+    public final int NUMBACK = 3; //How many replicates back to look at when smoothing derivatives (for inflection point TTR)
     public final String[] AXISLABELS = {"Minutes", "RFU"};
     public final String[] MELTAXISLABELS = {"Temperature (C)", "RFU"};
     public final Color[] colors = {Color.BLUE,Color.GREEN,Color.CYAN,Color.GRAY, Color.BLACK,Color.ORANGE,Color.MAGENTA};
@@ -64,6 +65,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         
         
         initComponents();
+        automateIndividuallyButton.setSelected(true);
+        minTextField.setText(Integer.toString(MINY));
+        maxTextField.setText(Integer.toString(MAXY));
+        minTextField.setEditable(false);
+        maxTextField.setEditable(false);
         this.setResizable(true);
         official_font = officialFont;
         DiAssessDataAnalysisToolUI.applyFont(this, officialFont);
@@ -86,6 +92,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     if(!midpointButton.isSelected()){
                         useMidpointMethod = false;
                     } 
+                    
                     double secondsPerCycle;
                     try{
                         secondsPerCycle = Double.parseDouble(secondsPerCycleField.getText());
@@ -93,6 +100,20 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                         JOptionPane.showMessageDialog(null, "Please make sure seconds per cycle is a number");
                         return;
                     }
+                    
+                    double minY_option = 0;
+                    double maxY_option = 0;
+                    if (fixedBoundsButton.isSelected()){
+                        try{
+                            minY_option = Double.parseDouble(minTextField.getText());
+                            maxY_option = Double.parseDouble(maxTextField.getText());
+                        } catch(NumberFormatException error){
+                            JOptionPane.showMessageDialog(null, "Please make sure min and max y values are valid numbers");
+                        return;
+                        }
+                    }
+                    boolean autoYAxis = automateIndividuallyButton.isSelected();
+                    
                     
                     int plotsPerRow;
                     try {
@@ -121,7 +142,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     }
                     for (int i = 0; i < allCombos.size(); i++) {
 
-                        boolean successful = makeAndSavePlots(allCombos.get(i), useMidpointMethod, secondsPerCycle, labelTTR, plotsPerRow);
+                        boolean successful = makeAndSavePlots(allCombos.get(i), useMidpointMethod, secondsPerCycle, 
+                                labelTTR, plotsPerRow, autoYAxis, minY_option, maxY_option);
                         if (!successful) {
                             addText("Something went wrong. Ask Kamin to investigate");
                         } else {
@@ -302,7 +324,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     
     //
     public boolean makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, 
-            double secondsPerCycle, boolean labelTTR, int plotsPerRow){
+            double secondsPerCycle, boolean labelTTR, int plotsPerRow, boolean autoYAxis, double minY, double maxY){
         ArrayList<TTRTuple> TTRData = new ArrayList<TTRTuple>();
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
         File signalFile = thisCombo.getSignal();
@@ -446,6 +468,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 double TTR = 0;
                 if(isMidpoint && !isMeltCurve){
                     TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle);
+                } else if (!isMeltCurve){
+                    TTR = allReplicates.get(j).getInflectionPointTTR(secondsPerCycle, 0, NUMBACK);
                 }
                 if (isMeltCurve){
                     TTR = meltCurveTemperatures.getSignal()[allReplicates.get(j).getPeakIndex()];
@@ -453,7 +477,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 TTRData.add(new TTRTuple(label,TTR,coordinates));
             }
             BufferedImage plotImage = plotGraph(thisSample.getLabel(),toPlot,
-                    true,thisPanel, allReplicates, secondsPerCycle, labelTTR, isMeltCurve, meltCurveTemperatures );
+                    true,thisPanel, allReplicates, secondsPerCycle, isMidpoint, labelTTR, isMeltCurve, meltCurveTemperatures, autoYAxis, 
+                    minY, maxY);
             BufferedImage labeledImage = null;
             if (isMeltCurve){
                 labeledImage = addText(plotImage, label + " Melt", 40, true, 0);
@@ -488,7 +513,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         }
         
 
-        OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData, official_font, passedFolder);
+        OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData, official_font, passedFolder, autoSaveButton.isSelected(), isMeltCurve);
         return true;
     }
     
@@ -639,7 +664,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     
     public BufferedImage plotGraph(String source, ArrayList<double[]> yValues, 
             boolean newPlot, Plot2DPanel toPlot, ArrayList<ThermoReplicate> allReplicates, 
-            double secondsPerCycle, boolean plotTTR, boolean isMelt, ThermoReplicate meltTemperatures){
+            double secondsPerCycle, boolean isMidpoint, boolean plotTTR, boolean isMelt, ThermoReplicate meltTemperatures,
+            boolean autoYAxis, double minY, double maxY){
         
               
         Plot2DPanel panel = null;
@@ -660,11 +686,15 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             ThermoReplicate plotReplicate = allReplicates.get(plotIndex);
             double [] yValueArray = plotReplicate.getSignal();
             double [] xValueArray = plotReplicate.getMinutes(secondsPerCycle);
+           
             if (isMelt){
                 xValueArray = meltTemperatures.getSignal();
             }
             if(plotTTR){
                 int TTR = plotReplicate.getMidpointTTRIndex();
+                if (!isMidpoint){
+                    TTR = plotReplicate.getInflectionPointTTRIndex(secondsPerCycle, 0, NUMBACK);
+                }
                 if (isMelt){
                     TTR = plotReplicate.getPeakIndex();
                 }
@@ -710,10 +740,13 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 //            
 //        }
         panel.setFixedBounds(0, 0, Math.ceil(maxXvalue/10.0)*10);
-        if (!isMelt) {
-            panel.setFixedBounds(1, MINY, MAXY);
-        } else {
-            panel.setFixedBounds(1, MINY_MELT, MAXY_MELT);
+        if (!autoYAxis) {
+            if (!isMelt) {
+                panel.setFixedBounds(1, minY, maxY);
+
+            } else {
+                panel.setFixedBounds(1, MINY_MELT, MAXY_MELT);
+            }
         }
         if (isMelt){
             panel.setFixedBounds(0,minXvalue,Math.ceil(maxXvalue/10.0)*10);
@@ -794,22 +827,40 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         jScrollBar1 = new javax.swing.JScrollBar();
         ttrMethodButtonGroup = new javax.swing.ButtonGroup();
         buttonGroup2 = new javax.swing.ButtonGroup();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTextArea1 = new javax.swing.JTextArea();
+        AxisButtonGroup = new javax.swing.ButtonGroup();
         jScrollPane1 = new javax.swing.JScrollPane();
         myTextField = new javax.swing.JTextArea();
         cancelButton = new javax.swing.JButton();
         waitContinueButton = new javax.swing.JButton();
         inflectionButton = new javax.swing.JRadioButton();
         midpointButton = new javax.swing.JRadioButton();
-        jLabel1 = new javax.swing.JLabel();
         secondsPerCycleField = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         labelTTRButton = new javax.swing.JToggleButton();
         jTextField1 = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        autoSaveButton = new javax.swing.JToggleButton();
+        jLabel6 = new javax.swing.JLabel();
+        jLabel8 = new javax.swing.JLabel();
+        automateIndividuallyButton = new javax.swing.JRadioButton();
+        fixedBoundsButton = new javax.swing.JRadioButton();
+        jSeparator1 = new javax.swing.JSeparator();
+        jSeparator2 = new javax.swing.JSeparator();
+        jSeparator3 = new javax.swing.JSeparator();
+        minTextField = new javax.swing.JTextField();
+        maxTextField = new javax.swing.JTextField();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel7 = new javax.swing.JLabel();
+
+        jTextArea1.setColumns(20);
+        jTextArea1.setRows(5);
+        jScrollPane2.setViewportView(jTextArea1);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setResizable(false);
 
         myTextField.setColumns(20);
         myTextField.setFont(new java.awt.Font("Monospaced", 0, 24)); // NOI18N
@@ -839,9 +890,6 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 midpointButtonActionPerformed(evt);
             }
         });
-
-        jLabel1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        jLabel1.setText("TTR Method:");
 
         secondsPerCycleField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         secondsPerCycleField.setText("40");
@@ -876,85 +924,180 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         jLabel5.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel5.setText("Plots Per Row:");
 
+        jLabel4.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel4.setText("Automatically save tables/plots:");
+
+        autoSaveButton.setText("OFF");
+        autoSaveButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autoSaveButtonActionPerformed(evt);
+            }
+        });
+
+        jLabel6.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel6.setText("TTR Method:");
+
+        jLabel8.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel8.setText("Y-Axis Labels:");
+
+        AxisButtonGroup.add(automateIndividuallyButton);
+        automateIndividuallyButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        automateIndividuallyButton.setText("Automate individually");
+        automateIndividuallyButton.setToolTipText("Each plot will have axes that are optimized for that plot in particular.");
+        automateIndividuallyButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                automateIndividuallyButtonActionPerformed(evt);
+            }
+        });
+
+        AxisButtonGroup.add(fixedBoundsButton);
+        fixedBoundsButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        fixedBoundsButton.setText("Set fixed bounds:");
+        fixedBoundsButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                fixedBoundsButtonActionPerformed(evt);
+            }
+        });
+
+        minTextField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        minTextField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                minTextFieldActionPerformed(evt);
+            }
+        });
+
+        maxTextField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+
+        jLabel1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel1.setText("MIN");
+
+        jLabel7.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel7.setText("MAX");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 665, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 591, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                    .addComponent(jSeparator3)
+                    .addComponent(jSeparator1)
+                    .addComponent(jSeparator2))
+                .addContainerGap())
+            .addGroup(layout.createSequentialGroup()
+                .addGap(597, 597, 597)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, 269, Short.MAX_VALUE)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 210, Short.MAX_VALUE)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGap(13, 13, 13))
-                            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(50, 50, 50)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(labelTTRButton, javax.swing.GroupLayout.PREFERRED_SIZE, 242, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(fixedBoundsButton, javax.swing.GroupLayout.DEFAULT_SIZE, 184, Short.MAX_VALUE)
+                        .addGap(108, 108, 108))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(12, 12, 12)
+                        .addComponent(automateIndividuallyButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(78, 78, 78))
+                    .addComponent(inflectionButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(midpointButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGap(18, 18, 18)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(midpointButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(inflectionButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(cancelButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(waitContinueButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))))
-                .addContainerGap())
+                                    .addComponent(autoSaveButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(labelTTRButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(waitContinueButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(44, 44, 44))
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(secondsPerCycleField))
+                                .addGap(44, 44, 44))))))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel1)
+                    .addComponent(jLabel7))
+                .addGap(18, 18, 18)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addComponent(minTextField)
+                    .addComponent(maxTextField, javax.swing.GroupLayout.DEFAULT_SIZE, 153, Short.MAX_VALUE))
+                .addGap(44, 44, 44))
         );
 
-        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jTextField1, labelTTRButton, secondsPerCycleField});
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jTextField1, secondsPerCycleField});
 
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane1)
-                        .addGap(9, 9, 9))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(6, 6, 6)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(6, 6, 6)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(12, 12, 12)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 39, Short.MAX_VALUE)
-                            .addComponent(labelTTRButton, javax.swing.GroupLayout.DEFAULT_SIZE, 39, Short.MAX_VALUE))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                            .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(midpointButton)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 4, Short.MAX_VALUE)
-                                .addComponent(inflectionButton, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 92, Short.MAX_VALUE)
+                        .addGap(17, 17, 17)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 63, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(waitContinueButton))
-                        .addContainerGap())))
+                            .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel2))
+                        .addGap(8, 8, 8)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel5))
+                        .addGap(13, 13, 13)
+                        .addComponent(jSeparator3, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(midpointButton, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(inflectionButton)))
+                        .addGap(18, 18, 18)
+                        .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 7, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addComponent(automateIndividuallyButton)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(fixedBoundsButton))
+                            .addComponent(jLabel8, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 62, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel1)
+                            .addComponent(minTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(maxTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel7))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(labelTTRButton, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                                .addGap(0, 0, Short.MAX_VALUE)
+                                .addComponent(autoSaveButton, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGap(18, 18, 18)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(cancelButton)
+                            .addComponent(waitContinueButton)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jScrollPane1)))
+                .addContainerGap())
         );
 
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jTextField1, secondsPerCycleField});
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jTextField1, maxTextField, minTextField, secondsPerCycleField});
 
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {inflectionButton, midpointButton});
-
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {cancelButton, waitContinueButton});
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jSeparator1, jSeparator2, jSeparator3});
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -985,23 +1128,67 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         // TODO add your handling code here:
     }//GEN-LAST:event_jTextField1ActionPerformed
 
+    private void autoSaveButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autoSaveButtonActionPerformed
+        // TODO add your handling code here:
+        if (autoSaveButton.isSelected()){
+            autoSaveButton.setText("ON");
+        } else {
+            autoSaveButton.setText("OFF");
+        }
+    }//GEN-LAST:event_autoSaveButtonActionPerformed
+
+    private void automateIndividuallyButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_automateIndividuallyButtonActionPerformed
+        // TODO add your handling code here:
+        minTextField.setEditable(false);
+        maxTextField.setEditable(false);
+        minTextField.setText(Integer.toString(MINY));
+        maxTextField.setText(Integer.toString(MAXY));
+        
+        
+    }//GEN-LAST:event_automateIndividuallyButtonActionPerformed
+
+    private void fixedBoundsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_fixedBoundsButtonActionPerformed
+        // TODO add your handling code here:
+        minTextField.setEditable(true);
+        maxTextField.setEditable(true);
+    }//GEN-LAST:event_fixedBoundsButtonActionPerformed
+
+    private void minTextFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_minTextFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_minTextFieldActionPerformed
+
     /**
      * @param args the command line arguments
      */
    
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.ButtonGroup AxisButtonGroup;
+    private javax.swing.JToggleButton autoSaveButton;
+    private javax.swing.JRadioButton automateIndividuallyButton;
     private javax.swing.ButtonGroup buttonGroup2;
     private javax.swing.JButton cancelButton;
+    private javax.swing.JRadioButton fixedBoundsButton;
     private javax.swing.JRadioButton inflectionButton;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JScrollBar jScrollBar1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JSeparator jSeparator2;
+    private javax.swing.JSeparator jSeparator3;
+    private javax.swing.JTextArea jTextArea1;
     private javax.swing.JTextField jTextField1;
     private javax.swing.JToggleButton labelTTRButton;
+    private javax.swing.JTextField maxTextField;
     private javax.swing.JRadioButton midpointButton;
+    private javax.swing.JTextField minTextField;
     private javax.swing.JTextArea myTextField;
     private javax.swing.JTextField secondsPerCycleField;
     private javax.swing.ButtonGroup ttrMethodButtonGroup;

@@ -59,6 +59,14 @@ public class ThermoReplicate implements Comparable {
         return timeArray;
     }
     
+    public double[] getSecondDerivativeMinutes(double secondsPerCycle, int numBack){
+        double[] timeArray = new double[signal.length - 2*numBack];
+        for (int i = 0; i < timeArray.length; i++){
+            timeArray[i] = ((double) i * secondsPerCycle ) / 60;
+        }
+        return timeArray;
+    }
+    
     public String getLabel(){
         return sampleName;
     }
@@ -109,6 +117,75 @@ public class ThermoReplicate implements Comparable {
         return peakIndex;
     }
 
+    public double[] getSecondDerivative(int numBack){
+        double[] firstDerivative = new double[signal.length - numBack];
+        double[] secondDerivative = new double[firstDerivative.length - numBack];
+        for(int i = 0; i < firstDerivative.length; i++){
+            firstDerivative[i] = signal[i+numBack] - signal[i];
+        }
+        for (int i = 0; i < secondDerivative.length; i++){
+            secondDerivative[i] = firstDerivative[i+numBack] - firstDerivative[i]; 
+        }
+        return secondDerivative;
+    }
+    
+    
+    //Returns the TTR as defined by the second derivative reaching some threshold
+    //Each derivative is taken by looking back numBack elements
+    public double getInflectionPointTTR(double secondsPerCycle, double threshold, int numBack){
+        double[] firstDerivative = new double[signal.length - numBack];
+        double[] secondDerivative = new double[firstDerivative.length - numBack];
+        for(int i = 0; i < firstDerivative.length; i++){
+            firstDerivative[i] = signal[i+numBack] - signal[i];
+        }
+        for (int i = 0; i < secondDerivative.length; i++){
+            secondDerivative[i] = firstDerivative[i+numBack] - firstDerivative[i]; 
+        }
+        for (int i = 0; i < secondDerivative.length; i++){
+            double thisValue = secondDerivative[i];
+            boolean foundTTR = true;
+            for (int j = i + 1; j < secondDerivative.length; j++){
+                double thatValue = secondDerivative[j];
+                if (thatValue > thisValue){
+                    foundTTR = false;
+                    break;
+                }
+            }
+            if (foundTTR){
+                return ((double)i )*secondsPerCycle/60.0;
+            }
+        }
+        return (double)signal.length * secondsPerCycle / 60.0;
+        
+    }
+    
+    public int getInflectionPointTTRIndex(double secondsPerCycle, double threshold, int numBack){
+        double[] firstDerivative = new double[signal.length - numBack];
+        double[] secondDerivative = new double[firstDerivative.length - numBack];
+        for(int i = 0; i < firstDerivative.length; i++){
+            firstDerivative[i] = signal[i+numBack] - signal[i];
+        }
+        for (int i = 0; i < secondDerivative.length; i++){
+            secondDerivative[i] = firstDerivative[i+numBack] - firstDerivative[i]; 
+        }
+        for (int i = 0; i < secondDerivative.length; i++){
+            double thisValue = secondDerivative[i];
+            boolean foundTTR = true;
+            for (int j = i + 1; j < secondDerivative.length; j++){
+                double thatValue = secondDerivative[j];
+                if (thatValue > thisValue){
+                    foundTTR = false;
+                    break;
+                }
+            }
+            if (foundTTR){
+                return i;
+            }
+        }
+        return signal.length;
+        
+    }
+    
     public double getMidpointTTR(double secondsPerCycle){
         int startCycle = 10;
         int endCycle = 16;
