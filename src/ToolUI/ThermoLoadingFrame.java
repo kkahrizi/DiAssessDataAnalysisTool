@@ -516,7 +516,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
        if (plotReorder != null && reOrder){
            if (plotReorder.size() != allData.size()){
                String errorMessage = "You have the wrong number of samples in your reorder list. There are " 
-                       + Integer.toString(allData.size()) + " samples in the thermocycler data, but only " + Integer.toString(plotReorder.size()) 
+                       + Integer.toString(allData.size()) + " samples in the thermocycler data, but " + Integer.toString(plotReorder.size()) 
                        + " samples in your table." ;
                if (isMeltCurve){
                    errorMessage = errorMessage + " (This message is for the melt curve data)";
@@ -659,6 +659,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         }
         
         OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData, official_font, passedFolder, autoSaveButton.isSelected(), isMeltCurve);
+        this.allPlots = new ArrayList<PlotTuple>();
         return true;
     }
     
