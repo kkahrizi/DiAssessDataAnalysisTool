@@ -17,7 +17,7 @@ public class ThermoReplicate implements Comparable {
     public String sampleName;
     public double[] signal;
     public double TTR;
-    
+    public final int LOCAL_MAXIMA_WINDOW = 4;
     public ThermoReplicate(){
         wellCoordinate = null;
         sampleName = null;
@@ -133,29 +133,8 @@ public class ThermoReplicate implements Comparable {
     //Returns the TTR as defined by the second derivative reaching some threshold
     //Each derivative is taken by looking back numBack elements
     public double getInflectionPointTTR(double secondsPerCycle, double threshold, int numBack){
-        double[] firstDerivative = new double[signal.length - numBack];
-        double[] secondDerivative = new double[firstDerivative.length - numBack];
-        for(int i = 0; i < firstDerivative.length; i++){
-            firstDerivative[i] = signal[i+numBack] - signal[i];
-        }
-        for (int i = 0; i < secondDerivative.length; i++){
-            secondDerivative[i] = firstDerivative[i+numBack] - firstDerivative[i]; 
-        }
-        for (int i = 0; i < secondDerivative.length; i++){
-            double thisValue = secondDerivative[i];
-            boolean foundTTR = true;
-            for (int j = i + 1; j < secondDerivative.length; j++){
-                double thatValue = secondDerivative[j];
-                if (thatValue > thisValue){
-                    foundTTR = false;
-                    break;
-                }
-            }
-            if (foundTTR){
-                return ((double)i )*secondsPerCycle/60.0;
-            }
-        }
-        return (double)(signal.length - 1) * secondsPerCycle / 60.0;
+       
+        return (double)(getInflectionPointTTRIndex(secondsPerCycle,threshold,numBack)) * secondsPerCycle / 60.0;
         
     }
     
@@ -170,14 +149,29 @@ public class ThermoReplicate implements Comparable {
         }
         for (int i = 0; i < secondDerivative.length; i++){
             double thisValue = secondDerivative[i];
-            boolean foundTTR = true;
-            for (int j = i + 1; j < secondDerivative.length; j++){
+            boolean foundTTR = true; 
+            int startValue = i - LOCAL_MAXIMA_WINDOW;
+            int endValue = i + LOCAL_MAXIMA_WINDOW;
+            if(startValue < 0 ){
+                continue;
+            }
+            if (endValue >= secondDerivative.length){
+                endValue = secondDerivative.length - 1;
+            }
+            for (int j = startValue; j < endValue; j++){
                 double thatValue = secondDerivative[j];
                 if (thatValue > thisValue){
                     foundTTR = false;
                     break;
                 }
             }
+//            for (int j = i + 1; j < secondDerivative.length; j++){
+//                double thatValue = secondDerivative[j];
+//                if (thatValue > thisValue){
+//                    foundTTR = false;
+//                    break;
+//                }
+//            }
             if (foundTTR){
                 return i;
             }

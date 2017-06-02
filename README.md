@@ -78,3 +78,10 @@ Version 2.11 Updates:
 
 Version 2.12 Updates:
 - Created an option to set a threshold for midpoint TTR formula
+
+Version 2.13 Updates:
+- Cleaned up UI for Thermocycler options window
+- Changed default seconds per cycles setting in Thermocycler options window to 38 seconds
+- Built functionality to allow for reordering of plots. To reorder plots, create a table (.csv) with one column, where each row is a sample
+as found in (...) - Quantification Summary_0.csv Thermocycler file, in the order desired. In the Thermocycler options window, turn the "automatically order plots" button 
+to the off position. The program will prompt you to select your .csv file, and will plot graphs in that order. 

@@ -5,6 +5,9 @@
  */
 package ToolUI;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.FileDialog;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -18,6 +21,7 @@ import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import org.math.plot.*;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -52,13 +56,15 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int NUMBACK = 3; //How many replicates back to look at when smoothing derivatives (for inflection point TTR)
     public final String[] AXISLABELS = {"Minutes", "RFU"};
     public final String[] MELTAXISLABELS = {"Temperature (C)", "RFU"};
-    public final Color[] colors = {Color.BLUE,Color.GREEN,Color.CYAN,Color.GRAY, Color.BLACK,Color.ORANGE,Color.MAGENTA};
+    public final Color[] colors = {Color.BLUE,Color.GREEN,Color.CYAN,Color.GRAY, Color.BLACK,Color.ORANGE,Color.MAGENTA, Color.PINK,Color.LIGHT_GRAY,Color.DARK_GRAY};
     
     public Font official_font;
     public boolean useMidpointMethod;
     public final int TTRLINELENGTH = 10;
     public ArrayList<SignalSampleCombo> allCombos;
     public LabelManager myManager;
+    public ArrayList<PlotTuple> allPlots;
+    public ArrayList<String[]> plotReorder;
     /**
      * Creates new form loadingFrame
      */
@@ -66,6 +72,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         
         
         initComponents();
+        
+        allPlots = new ArrayList<PlotTuple>();        
+        autoOrderButton.setSelected(true);
         automateIndividuallyButton.setSelected(true);
         minTextField.setText(Integer.toString(MINY));
         maxTextField.setText(Integer.toString(MAXY));
@@ -73,7 +82,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         maxTextField.setEditable(false);
         this.setResizable(true);
         official_font = officialFont;
-        DiAssessDataAnalysisToolUI.applyFont(this, officialFont);
+        DiAssessDataAnalysisToolUI.applyFont(this, new Font("Tahoma",Font.PLAIN,16));
+        
         labelTTRButton.setSelected(true);
         midpointButton.setSelected(true);
         amplitudeThresholdField.setEditable(true);
@@ -84,7 +94,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         this.getRootPane().setDefaultButton(waitContinueButton);
       
         myTextField.setEditable(false);
-        myTextField.setFont(officialFont);
+        myTextField.setFont(new Font("Tahoma", Font.PLAIN,12));
         currentText = "";
         passedFolder = folder;
         allCombos = new ArrayList<SignalSampleCombo>();
@@ -94,9 +104,31 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             waitContinueButton.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent e){
                     int amplitudeThreshold = DEFAULT_AMPLITUDE_THRESHOLD;
+                    boolean reOrder = !autoOrderButton.isSelected();
+                    ArrayList<String[]> orderList = new ArrayList<String[]>();
+                    
+                    if(reOrder){
+                        JFrame aFrame = new JFrame();
+                        JOptionPane.showMessageDialog(aFrame,"Please load a table (.csv) with the samples in the desired order as a column");
+                        FileDialog chooser = new FileDialog(aFrame,"Load sample order .csv", FileDialog.LOAD);
+                        chooser.setDirectory(passedFolder.getAbsolutePath());
+                        chooser.setVisible(true);
+                        String chosenFile = chooser.getFile();
+                        String chosenFolder = chooser.getDirectory();
+                        File folder = new File(chosenFolder);
+                        if (!chosenFile.endsWith(".csv")) {
+                            JOptionPane.showMessageDialog(aFrame,"Error, sample order file must be a .csv with the samples as a column in the order desired. Correct file and press continue when ready.");
+                            return;
+                        }
+                        File orderFile = new File(folder,chosenFile);
+                        plotReorder = readFile(orderFile);
+                        
+                    
+                    }
                     if(!midpointButton.isSelected()){
                         useMidpointMethod = false;
                     } else {
+                        useMidpointMethod = true;
                          try{
                             amplitudeThreshold = Integer.parseInt(amplitudeThresholdField.getText());
                          } catch (NumberFormatException error){
@@ -155,13 +187,15 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     for (int i = 0; i < allCombos.size(); i++) {
 
                         boolean successful = makeAndSavePlots(allCombos.get(i), useMidpointMethod, amplitudeThreshold, secondsPerCycle, 
-                                labelTTR, plotsPerRow, autoYAxis, minY_option, maxY_option);
+                                labelTTR, plotsPerRow, autoYAxis, minY_option, maxY_option, reOrder);
                         if (!successful) {
                             addText("Something went wrong. Ask Kamin to investigate");
                         } else {
                             addText("Plots were successful. You should see a window of plots with buttons to save");
                         }
                     }
+                    plotReorder = null;
+                    allPlots = new ArrayList<PlotTuple>();
                 }
             });
             
@@ -333,10 +367,23 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         return FILES_FOUND;
     }
         
-    
+    public void setFileChooserFont(Component[] comp)
+    {
+        for(int x = 0; x < comp.length; x++)
+        {
+        if(comp[x] instanceof Container) setFileChooserFont(((Container)comp[x]).getComponents());
+            try
+            {
+                comp[x].setFont(official_font);
+            }
+            catch(Exception e)
+            {
+            }
+        }
+    }
     //
     public boolean makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, int amplitudeThreshold,
-            double secondsPerCycle, boolean labelTTR, int plotsPerRow, boolean autoYAxis, double minY, double maxY){
+            double secondsPerCycle, boolean labelTTR, int plotsPerRow, boolean autoYAxis, double minY, double maxY, boolean reOrder){
         ArrayList<TTRTuple> TTRData = new ArrayList<TTRTuple>();
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
         File signalFile = thisCombo.getSignal();
@@ -465,7 +512,50 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         
        BufferedImage allPlots = null;
        BufferedImage thisRowOfPlots = null;
-
+       ArrayList<String[]> plotReorder = (ArrayList<String[]>) this.plotReorder.clone();
+       if (plotReorder != null && reOrder){
+           if (plotReorder.size() != allData.size()){
+               String errorMessage = "You have the wrong number of samples in your reorder list. There are " 
+                       + Integer.toString(allData.size()) + " samples in the thermocycler data, but only " + Integer.toString(plotReorder.size()) 
+                       + " samples in your table." ;
+               if (isMeltCurve){
+                   errorMessage = errorMessage + " (This message is for the melt curve data)";
+               }
+               JOptionPane.showMessageDialog(this, errorMessage );
+               return false;
+           }
+           ArrayList<String> missingLabels = new ArrayList<String>();
+           for(int i  = 0; i < allData.size(); i++){
+               String label = allData.get(i).getLabel();
+               boolean foundOne = false;
+               for (int j = 0; j < plotReorder.size(); j++){
+                   String orderLabel = plotReorder.get(j)[0];
+                   if (label.equalsIgnoreCase(orderLabel)){
+                       foundOne = true;
+                       break;
+                   }
+               }
+               if ( !foundOne ){
+                   missingLabels.add(label);
+               }
+           }
+           if (missingLabels.size() > 0){
+               String concatenated = "";
+               Collections.sort(missingLabels);
+               for (int i = 0; i < missingLabels.size(); i++) {
+                   String label = missingLabels.get(i);
+                   String[] addToPlotReorder = {label};
+                   concatenated = concatenated + label+ ", ";
+                   plotReorder.add(addToPlotReorder);
+               }
+               JOptionPane.showMessageDialog(this, " Could not find the following sample(s) in your reordering table: " + concatenated
+                       + ". Therefore, we will append these samples in alphanumerical order at the end.");
+               
+           }
+           
+       }
+       
+       
         for (int i = 0; i < allData.size(); i++){     
         
             ThermoSample thisSample = allData.get(i);
@@ -497,34 +587,77 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             } else {
                 labeledImage = addText(plotImage, label, 40, true, 0);
             }
-            if ( (i + 1)% plotsPerRow == 0 || i == allData.size()-1){
-                if (thisRowOfPlots == null){
-                    thisRowOfPlots = labeledImage;
-                } else {
-                    if (allPlots == null ){
-                        thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage,0);
-                        allPlots = deepCopy(thisRowOfPlots);
-                        thisRowOfPlots = null;
+           
+            if (!reOrder) {
+                if ((i + 1) % plotsPerRow == 0 || i == allData.size() - 1) {
+                    if (thisRowOfPlots == null) {
+                        thisRowOfPlots = labeledImage;
                     } else {
-                        thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage,0);
-                        allPlots = joinImageVert(allPlots,thisRowOfPlots,0);
-                        thisRowOfPlots = null;
+                        if (allPlots == null) {
+                            thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage, 0);
+                            allPlots = deepCopy(thisRowOfPlots);
+                            thisRowOfPlots = null;
+                        } else {
+                            thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage, 0);
+                            allPlots = joinImageVert(allPlots, thisRowOfPlots, 0);
+                            thisRowOfPlots = null;
+                        }
+                    }
+                } else {
+                    if (thisRowOfPlots == null) {
+                        thisRowOfPlots = labeledImage;
+                    } else {
+                        thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage, 0);
                     }
                 }
             } else {
-                if (thisRowOfPlots == null){
-                    thisRowOfPlots = labeledImage;
-                } else {
-                    thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage,0);
-                }                
+                this.allPlots.add(new PlotTuple(labeledImage,thisSample.getLabel()));
             }
-            
+                   
+
         }
-        if ( thisRowOfPlots != null ) {
-           allPlots = joinImageVert(allPlots,thisRowOfPlots,0);
+        if (!reOrder) {
+            if (thisRowOfPlots != null) {
+                allPlots = joinImageVert(allPlots, thisRowOfPlots, 0);
+            }
+        } else {
+           for (int i = 0; i < plotReorder.size(); i++){
+                String orderLabel = plotReorder.get(i)[0];
+                for (int j = 0; j < this.allPlots.size(); j++) {
+                    PlotTuple plotThis = this.allPlots.get(j);
+                    BufferedImage labeledImage = plotThis.getImage();
+                    String sampleName = plotThis.getLabel();
+                    if (sampleName.equalsIgnoreCase(orderLabel)) {
+                        if ((i + 1) % plotsPerRow == 0 || i == allData.size() - 1) {
+                            if (thisRowOfPlots == null) {
+                                thisRowOfPlots = labeledImage;
+                            } else {
+                                if (allPlots == null) {
+                                    thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage, 0);
+                                    allPlots = deepCopy(thisRowOfPlots);
+                                    thisRowOfPlots = null;
+                                } else {
+                                    thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage, 0);
+                                    allPlots = joinImageVert(allPlots, thisRowOfPlots, 0);
+                                    thisRowOfPlots = null;
+                                }
+                            }
+                        } else {
+                            if (thisRowOfPlots == null) {
+                                thisRowOfPlots = labeledImage;
+                            } else {
+                                thisRowOfPlots = joinImageHorz(thisRowOfPlots, labeledImage, 0);
+                            }
+                        }
+                    }
+                }
+
+            }
+            if (thisRowOfPlots != null) {
+                allPlots = joinImageVert(allPlots, thisRowOfPlots, 0);
+            }
         }
         
-
         OutputFrame thisExperiment = new OutputFrame(allPlots,OutputFrame.THERMOCYCLER, TTRData, official_font, passedFolder, autoSaveButton.isSelected(), isMeltCurve);
         return true;
     }
@@ -699,6 +832,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
             double [] yValueArray = plotReplicate.getSignal();
             double [] xValueArray = plotReplicate.getMinutes(secondsPerCycle);
            
+//            double [] yValueArray = plotReplicate.getSecondDerivative(NUMBACK);
+//            double [] xValueArray = plotReplicate.getSecondDerivativeMinutes(secondsPerCycle,NUMBACK);
+            
+            
             if (isMelt){
                 xValueArray = meltTemperatures.getSignal();
             }
@@ -869,18 +1006,25 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         jLabel7 = new javax.swing.JLabel();
         jLabel9 = new javax.swing.JLabel();
         amplitudeThresholdField = new javax.swing.JTextField();
-        jLabel10 = new javax.swing.JLabel();
+        jLabel11 = new javax.swing.JLabel();
+        autoOrderButton = new javax.swing.JToggleButton();
+        jLabel12 = new javax.swing.JLabel();
+        jLabel13 = new javax.swing.JLabel();
+        jLabel14 = new javax.swing.JLabel();
 
         jTextArea1.setColumns(20);
         jTextArea1.setRows(5);
         jScrollPane2.setViewportView(jTextArea1);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         myTextField.setColumns(20);
         myTextField.setFont(new java.awt.Font("Monospaced", 0, 24)); // NOI18N
         myTextField.setRows(5);
         jScrollPane1.setViewportView(myTextField);
+
+        getContentPane().add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 10, 660, 560));
 
         cancelButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         cancelButton.setText("Cancel");
@@ -889,9 +1033,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 cancelButtonActionPerformed(evt);
             }
         });
+        getContentPane().add(cancelButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 510, 176, -1));
 
         waitContinueButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         waitContinueButton.setText("(Wait...)");
+        getContentPane().add(waitContinueButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 510, 176, -1));
 
         ttrMethodButtonGroup.add(inflectionButton);
         inflectionButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -901,6 +1047,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 inflectionButtonActionPerformed(evt);
             }
         });
+        getContentPane().add(inflectionButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 160, 333, 34));
 
         ttrMethodButtonGroup.add(midpointButton);
         midpointButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -910,20 +1057,25 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 midpointButtonActionPerformed(evt);
             }
         });
+        getContentPane().add(midpointButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 90, 333, 34));
 
         secondsPerCycleField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        secondsPerCycleField.setText("40");
+        secondsPerCycleField.setText("38");
         secondsPerCycleField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 secondsPerCycleFieldActionPerformed(evt);
             }
         });
+        getContentPane().add(secondsPerCycleField, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 10, 174, -1));
 
         jLabel2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel2.setText("Seconds per cycle:");
+        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 222, -1));
 
         jLabel3.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel3.setText("Label TTR on Plot:");
+        getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 380, 150, 35));
 
         labelTTRButton.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
         labelTTRButton.setText("ON");
@@ -932,6 +1084,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 labelTTRButtonActionPerformed(evt);
             }
         });
+        getContentPane().add(labelTTRButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 380, 107, 35));
 
         jTextField1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jTextField1.setText("4");
@@ -940,12 +1093,16 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 jTextField1ActionPerformed(evt);
             }
         });
+        getContentPane().add(jTextField1, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 40, 174, -1));
 
         jLabel5.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel5.setText("Plots Per Row:");
+        getContentPane().add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 40, 222, -1));
 
         jLabel4.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel4.setText("Automatically save tables/plots:");
+        getContentPane().add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 460, 270, 35));
 
         autoSaveButton.setText("OFF");
         autoSaveButton.addActionListener(new java.awt.event.ActionListener() {
@@ -953,12 +1110,17 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 autoSaveButtonActionPerformed(evt);
             }
         });
+        getContentPane().add(autoSaveButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 460, 107, 35));
 
         jLabel6.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel6.setText("TTR Method:");
+        getContentPane().add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 80, 120, 30));
 
         jLabel8.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel8.setText("Y-Axis Labels:");
+        getContentPane().add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 200, 110, 30));
 
         AxisButtonGroup.add(automateIndividuallyButton);
         automateIndividuallyButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -969,6 +1131,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 automateIndividuallyButtonActionPerformed(evt);
             }
         });
+        getContentPane().add(automateIndividuallyButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 230, 200, -1));
 
         AxisButtonGroup.add(fixedBoundsButton);
         fixedBoundsButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -978,6 +1141,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 fixedBoundsButtonActionPerformed(evt);
             }
         });
+        getContentPane().add(fixedBoundsButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 260, 260, -1));
+        getContentPane().add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 200, 480, 12));
+        getContentPane().add(jSeparator2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 370, 480, 12));
+        getContentPane().add(jSeparator3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 80, 480, 12));
 
         minTextField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         minTextField.addActionListener(new java.awt.event.ActionListener() {
@@ -985,20 +1152,25 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 minTextFieldActionPerformed(evt);
             }
         });
+        getContentPane().add(minTextField, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 300, 174, -1));
 
         maxTextField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        getContentPane().add(maxTextField, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 330, 174, -1));
 
         jLabel1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel1.setText("MIN");
+        getContentPane().add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 300, 35, -1));
 
         jLabel7.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel7.setText("MAX");
+        getContentPane().add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 330, -1, -1));
 
         jLabel9.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel9.setText("Amplitude Threshold:");
+        getContentPane().add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 130, -1, 31));
 
         amplitudeThresholdField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         amplitudeThresholdField.setText("4000");
@@ -1007,151 +1179,31 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 amplitudeThresholdFieldActionPerformed(evt);
             }
         });
+        getContentPane().add(amplitudeThresholdField, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 130, 170, -1));
 
-        jLabel10.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
-        jLabel10.setToolTipText("A difference in ampiltude between baseline and midpoint value smaller than this threshold will result in TTR being the maximum possible for each plot.");
+        jLabel11.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel11.setText("Automatically Order Plots Alphanumerically:");
+        getContentPane().add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 420, 350, 30));
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(waitContinueButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(labelTTRButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(autoSaveButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(44, 44, 44))
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(773, 773, 773)
-                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel9)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(amplitudeThresholdField, javax.swing.GroupLayout.PREFERRED_SIZE, 174, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 591, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jSeparator3)
-                            .addComponent(jSeparator1)
-                            .addComponent(jSeparator2, javax.swing.GroupLayout.DEFAULT_SIZE, 611, Short.MAX_VALUE))))
-                .addContainerGap())
-            .addGroup(layout.createSequentialGroup()
-                .addGap(597, 597, 597)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(inflectionButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(midpointButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(automateIndividuallyButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(fixedBoundsButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addContainerGap())
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGap(82, 82, 82)
-                                .addComponent(jLabel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(cancelButton, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, Short.MAX_VALUE)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.TRAILING))
-                        .addGap(103, 103, 103)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(secondsPerCycleField)
-                            .addComponent(minTextField)
-                            .addComponent(maxTextField, javax.swing.GroupLayout.DEFAULT_SIZE, 153, Short.MAX_VALUE))
-                        .addGap(44, 44, 44))))
-        );
+        autoOrderButton.setText("ON");
+        autoOrderButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autoOrderButtonActionPerformed(evt);
+            }
+        });
+        getContentPane().add(autoOrderButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 420, 107, 35));
 
-        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {amplitudeThresholdField, jTextField1, maxTextField, minTextField, secondsPerCycleField});
+        jLabel12.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
+        jLabel12.setToolTipText("A difference in ampiltude between baseline and midpoint value smaller than this threshold will result in TTR being the maximum possible for each plot.");
+        getContentPane().add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 130, 27, 29));
 
-        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {jLabel1, jLabel7});
+        jLabel13.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
+        jLabel13.setToolTipText("If set to OFF, the program will prompt you to load a csv table with the sample names in the order you wish them to be plotted. If set to ON, will automatically order the samples in alphanumerical order when plotting");
+        getContentPane().add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 430, 20, 20));
 
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(17, 17, 17)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(secondsPerCycleField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel2))
-                        .addGap(8, 8, 8)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel5))
-                        .addGap(13, 13, 13)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jSeparator3, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(midpointButton, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(layout.createSequentialGroup()
-                                .addGap(78, 78, 78)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 60, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(amplitudeThresholdField, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 28, Short.MAX_VALUE)
-                        .addComponent(inflectionButton)
-                        .addGap(18, 18, 18)
-                        .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 7, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addComponent(automateIndividuallyButton)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(fixedBoundsButton))
-                            .addComponent(jLabel8, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 62, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel1)
-                            .addComponent(minTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(maxTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel7))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(labelTTRButton, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addGap(0, 0, Short.MAX_VALUE)
-                                .addComponent(autoSaveButton, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(cancelButton)
-                            .addComponent(waitContinueButton)))
-                    .addGroup(layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jScrollPane1)))
-                .addContainerGap())
-        );
-
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {amplitudeThresholdField, jTextField1, maxTextField, minTextField, secondsPerCycleField});
-
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jSeparator1, jSeparator2, jSeparator3});
+        jLabel14.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
+        jLabel14.setToolTipText("If set to ON, will automatically save TTR table, amplification plots, (Melt peaks), (melt curves) to same directory as input data ");
+        getContentPane().add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 470, 20, 20));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -1224,6 +1276,14 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         // TODO add your handling code here:
     }//GEN-LAST:event_amplitudeThresholdFieldActionPerformed
 
+    private void autoOrderButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autoOrderButtonActionPerformed
+        if (autoOrderButton.isSelected()){
+            autoOrderButton.setText("ON");
+        } else {
+            autoOrderButton.setText("OFF");
+        }
+    }//GEN-LAST:event_autoOrderButtonActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1231,6 +1291,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup AxisButtonGroup;
     private javax.swing.JTextField amplitudeThresholdField;
+    private javax.swing.JToggleButton autoOrderButton;
     private javax.swing.JToggleButton autoSaveButton;
     private javax.swing.JRadioButton automateIndividuallyButton;
     private javax.swing.ButtonGroup buttonGroup2;
@@ -1238,7 +1299,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     private javax.swing.JRadioButton fixedBoundsButton;
     private javax.swing.JRadioButton inflectionButton;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
