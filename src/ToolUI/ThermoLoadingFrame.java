@@ -512,7 +512,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         
        BufferedImage allPlots = null;
        BufferedImage thisRowOfPlots = null;
-       ArrayList<String[]> plotReorder = (ArrayList<String[]>) this.plotReorder.clone();
+       if (this.plotReorder != null && reOrder){
+         ArrayList<String[]> plotReorder = (ArrayList<String[]>) this.plotReorder.clone();
+       }
        if (plotReorder != null && reOrder){
            if (plotReorder.size() != allData.size()){
                String errorMessage = "You have the wrong number of samples in your reorder list. There are " 
