@@ -41,6 +41,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int DEFAULT_AMPLITUDE_THRESHOLD = 2000;
     public final String SAMPLE_HEADER = "Sample";
     public final String WELL_HEADER = "Well";
+    public final String CQ_HEADER = "Cq";
+    public final String NAN = "NaN";
     public final String SIGNAL_FILE_TOKEN = "Quantification Amplification Results";
     public final String SAMPLE_FILE_TOKEN = "Quantification Summary_0.csv";
     public final String MELTCURVE_SIGNAL_TOKEN = "Melt Curve Derivative Results";
@@ -56,10 +58,16 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     public final int NUMBACK = 3; //How many replicates back to look at when smoothing derivatives (for inflection point TTR)
     public final String[] AXISLABELS = {"Minutes", "RFU"};
     public final String[] MELTAXISLABELS = {"Temperature (C)", "RFU"};
+    public final String[] CYCLELABELS = {"Cycles", "RFU"};
     public final Color[] colors = {Color.BLUE,Color.GREEN,Color.CYAN,Color.GRAY, Color.BLACK,Color.ORANGE,Color.MAGENTA, Color.PINK,Color.LIGHT_GRAY,Color.DARK_GRAY};
+    public final int MIDPOINTMETHOD = 1;
+    public final int INFLECTIONPOINTMETHOD = 2;
+    public final int CQVALUEMETHOD = 3;
+    
+    
     
     public Font official_font;
-    public boolean useMidpointMethod;
+    
     public final int TTRLINELENGTH = 10;
     public ArrayList<SignalSampleCombo> allCombos;
     public LabelManager myManager;
@@ -88,8 +96,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         midpointButton.setSelected(true);
         amplitudeThresholdField.setEditable(true);
         amplitudeThresholdField.setText(Integer.toString(DEFAULT_AMPLITUDE_THRESHOLD));
-        useMidpointMethod = true;
-        
+       
         
         this.getRootPane().setDefaultButton(waitContinueButton);
       
@@ -106,7 +113,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     int amplitudeThreshold = DEFAULT_AMPLITUDE_THRESHOLD;
                     boolean reOrder = !autoOrderButton.isSelected();
                     ArrayList<String[]> orderList = new ArrayList<String[]>();
-                    
+                    int TTRMethod = 0;
                     if(reOrder){
                         JFrame aFrame = new JFrame();
                         JOptionPane.showMessageDialog(aFrame,"Please load a table (.csv) with the samples in the desired order as a column");
@@ -125,16 +132,21 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                         
                     
                     }
-                    if(!midpointButton.isSelected()){
-                        useMidpointMethod = false;
-                    } else {
-                        useMidpointMethod = true;
+                    if(inflectionButton1.isSelected()){
+                        TTRMethod = INFLECTIONPOINTMETHOD;
+                        addText("We will use inflection point to call TTR");
+                    } else if(midpointButton.isSelected()) {
+                        addText("We will use midpoint method to call TTR");
+                        TTRMethod = MIDPOINTMETHOD;
                          try{
                             amplitudeThreshold = Integer.parseInt(amplitudeThresholdField.getText());
                          } catch (NumberFormatException error){
                              JOptionPane.showMessageDialog(null, "Please make sure amplitude threshold is an integer");
                              return;
                          }
+                    } else if(CqValueButton.isSelected()){
+                        TTRMethod = CQVALUEMETHOD;
+                        addText("We will use Cq values as TTR (no cycles)");
                     }
                     
                     double secondsPerCycle;
@@ -173,11 +185,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     if(labelTTRButton.isSelected()){
                         labelTTR = true;
                     }
-                    addText("Seconds per cycle: " + Double.toString(secondsPerCycle));
-                    if (useMidpointMethod) {
-                        addText("We will use midpoint method to call TTR");
-                    } else {
-                        addText("We will use inflection point to call TTR");
+                    if (TTRMethod != CQVALUEMETHOD) {
+                        addText("Seconds per cycle: " + Double.toString(secondsPerCycle));
                     }
                     if (labelTTR) {
                         addText("We will label TTR on plots.");
@@ -186,7 +195,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     }
                     for (int i = 0; i < allCombos.size(); i++) {
 
-                        boolean successful = makeAndSavePlots(allCombos.get(i), useMidpointMethod, amplitudeThreshold, secondsPerCycle, 
+                        boolean successful = makeAndSavePlots(allCombos.get(i), TTRMethod, amplitudeThreshold, secondsPerCycle, 
                                 labelTTR, plotsPerRow, autoYAxis, minY_option, maxY_option, reOrder);
                         if (!successful) {
                             addText("Something went wrong. Ask Kamin to investigate");
@@ -382,7 +391,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         }
     }
     //
-    public boolean makeAndSavePlots(SignalSampleCombo thisCombo, boolean isMidpoint, int amplitudeThreshold,
+    public boolean makeAndSavePlots(SignalSampleCombo thisCombo, int TTRMethod, int amplitudeThreshold,
             double secondsPerCycle, boolean labelTTR, int plotsPerRow, boolean autoYAxis, double minY, double maxY, boolean reOrder){
         ArrayList<TTRTuple> TTRData = new ArrayList<TTRTuple>();
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
@@ -453,6 +462,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         ArrayList<ThermoSample> allData = new ArrayList<ThermoSample>();
         int sampleIndex = -1; //Variable to store the sample info index
         int wellIndex = -1; //Variable to store the well info index
+        int cqIndex = -1; //Variable to store the Cq value index
         if(hasSamples){
             ArrayList<ThermoReplicate> labeledReplicates = new ArrayList<ThermoReplicate>();
             while(!allUnlabeledReplicates.isEmpty()){
@@ -461,7 +471,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     String[] sampleRow = sampleFileData.get(i);
                     
                     //This for loop finds the sampleIndex and wellIndex by looking for the first instance where the header is "Sample" or Well
-                    for (int headerIndex = 0; headerIndex < sampleRow.length && (sampleIndex == -1 || wellIndex == -1); headerIndex++) {
+                    for (int headerIndex = 0; headerIndex < sampleRow.length && (sampleIndex == -1 || wellIndex == -1 || cqIndex == -1); headerIndex++) {
                         String header = sampleRow[headerIndex];
                         
                         if (header.equalsIgnoreCase(SAMPLE_HEADER) && sampleIndex == -1) {
@@ -472,6 +482,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                             wellIndex = headerIndex;
                             continue;
                         }
+                        if (header.equalsIgnoreCase(CQ_HEADER) && cqIndex == -1){
+                            cqIndex = headerIndex;
+                            continue;
+                        }
+                       
                     }
                    
                     if (sampleIndex == -1){
@@ -484,20 +499,35 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                                 ", could not find a header called \"" + WELL_HEADER + "\"");
                         return false;
                     }
+                    if (cqIndex == -1 && !isMeltCurve){
+                        JOptionPane.showMessageDialog(this, "In the file " + sampleFile.getAbsolutePath() +
+                                ", could not find a header called \"" + CQ_HEADER + "\"");
+                        return false;
+                    }
                     
                     String wellCoordinates = "";
                     String sampleName = "";
-                    
+                    String CqValueString = "";
+                    double CqValue = 0;
                     
                     wellCoordinates = sampleRow[wellIndex];
-                    
-                    if(wellCoordinates.equalsIgnoreCase(WELL_HEADER)){
+                    CqValueString = "";
+                    if (!isMeltCurve){
+                        CqValueString = sampleRow[cqIndex];
+                    }
+                 
+                    if (wellCoordinates.equalsIgnoreCase(WELL_HEADER)) {
                         continue;
                     }
-                   
+                    if (!CqValueString.equalsIgnoreCase(NAN) && !CqValueString.equalsIgnoreCase("")) {
+                        CqValue = Double.parseDouble(CqValueString);
+                    } else {
+                        CqValue = -1.0;
+                    }
                     if (thisReplicate.checkCoordinate(wellCoordinates)) {
                         sampleName = sampleRow[sampleIndex];
                         thisReplicate.label(sampleName);
+                        thisReplicate.setCq(CqValue);
                         labeledReplicates.add(thisReplicate);
                     } else {
                         continue;
@@ -515,6 +545,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
        if (this.plotReorder != null && reOrder){
          ArrayList<String[]> plotReorder = (ArrayList<String[]>) this.plotReorder.clone();
        }
+       
        if (plotReorder != null && reOrder){
            if (plotReorder.size() != allData.size()){
                String errorMessage = "You have the wrong number of samples in your reorder list. There are " 
@@ -530,13 +561,45 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
            for(int i  = 0; i < allData.size(); i++){
                String label = allData.get(i).getLabel();
                boolean foundOne = false;
-               for (int j = 0; j < plotReorder.size(); j++){
+               
+               for (int j = 0; j < plotReorder.size(); j++) {
                    String orderLabel = plotReorder.get(j)[0];
-                   if (label.equalsIgnoreCase(orderLabel)){
+                   System.out.println("Comparing:" + label + " with " + orderLabel + " results in  " + label.equalsIgnoreCase(orderLabel));
+                   if (label.equalsIgnoreCase(orderLabel)) {
                        foundOne = true;
                        break;
+                   } else {
+                       if (label.length() + 1 == orderLabel.length()) {
+                           System.out.println((int)orderLabel.charAt(0));
+                           System.out.println((int)" ".charAt(0));
+                           if ((int)orderLabel.charAt(0) == 65279) {
+                               String aLittleShorter = orderLabel.substring(1, orderLabel.length());
+                               if (label.equalsIgnoreCase(aLittleShorter)) {
+                                   String[] shorterArray = {aLittleShorter};
+                                   plotReorder.set(j, shorterArray);
+                                   foundOne = true;
+                                   break;
+                               }
+                           }
+                       }
                    }
                }
+//                           System.out.println("They have equal length");
+//
+//                           for (int x = 0; x < label.length(); x++) {
+//                               System.out.println("Label chat at " + Integer.toString(x) + ": " + label);
+//                               System.out.println("Reorder label char:" + orderLabel);
+//                           }
+//                       } else {
+//                           System.out.println(Integer.toString(label.length()));
+//                           System.out.println(Integer.toString(orderLabel.length()));
+//                           for (int x = 0; x < label.length() && x < orderLabel.length(); x++){
+//                               System.out.println("Label chat at " + Integer.toString(x) + ": " + label.charAt(x));
+//                               System.out.println("Reorder label char:" + orderLabel.charAt(x));
+//                           }
+//                       }
+                       
+                   
                if ( !foundOne ){
                    missingLabels.add(label);
                }
@@ -570,10 +633,12 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 toPlot.add(allReplicates.get(j).getSignal());
                 String coordinates = allReplicates.get(j).getCoordinates();
                 double TTR = 0;
-                if(isMidpoint && !isMeltCurve){
+                if(TTRMethod == MIDPOINTMETHOD && !isMeltCurve){
                     TTR = allReplicates.get(j).getMidpointTTR(secondsPerCycle, amplitudeThreshold);
-                } else if (!isMeltCurve){
+                } else if (TTRMethod == INFLECTIONPOINTMETHOD && !isMeltCurve){
                     TTR = allReplicates.get(j).getInflectionPointTTR(secondsPerCycle, 0, NUMBACK);
+                } else if (TTRMethod == CQVALUEMETHOD && !isMeltCurve){
+                    TTR = allReplicates.get(j).getCq();
                 }
                 if (isMeltCurve){
                     TTR = meltCurveTemperatures.getSignal()[allReplicates.get(j).getPeakIndex()];
@@ -581,7 +646,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 TTRData.add(new TTRTuple(label,TTR,coordinates));
             }
             BufferedImage plotImage = plotGraph(thisSample.getLabel(),toPlot,
-                    true,thisPanel, allReplicates, secondsPerCycle, isMidpoint, amplitudeThreshold, 
+                    true,thisPanel, allReplicates, secondsPerCycle, TTRMethod, amplitudeThreshold, 
                     labelTTR, isMeltCurve, meltCurveTemperatures, autoYAxis, minY, maxY);
             BufferedImage labeledImage = null;
             if (isMeltCurve){
@@ -812,7 +877,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     
     public BufferedImage plotGraph(String source, ArrayList<double[]> yValues, 
             boolean newPlot, Plot2DPanel toPlot, ArrayList<ThermoReplicate> allReplicates, 
-            double secondsPerCycle, boolean isMidpoint, int amplitudeThreshold, boolean plotTTR, boolean isMelt, ThermoReplicate meltTemperatures,
+            double secondsPerCycle, int TTRMethod, int amplitudeThreshold, boolean plotTTR, boolean isMelt, ThermoReplicate meltTemperatures,
             boolean autoYAxis, double minY, double maxY){
         
               
@@ -832,8 +897,15 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         double minXvalue = 100;
         for (int plotIndex = 0; plotIndex < allReplicates.size(); plotIndex++){
             ThermoReplicate plotReplicate = allReplicates.get(plotIndex);
-            double [] yValueArray = plotReplicate.getSignal();
-            double [] xValueArray = plotReplicate.getMinutes(secondsPerCycle);
+            double[] yValueArray = plotReplicate.getSignal();
+            double[] xValueArray;
+            if (TTRMethod != CQVALUEMETHOD){
+                xValueArray = plotReplicate.getMinutes(secondsPerCycle);
+            } else {
+                xValueArray = plotReplicate.getCycles();
+            }
+            
+            
            
 //            double [] yValueArray = plotReplicate.getSecondDerivative(NUMBACK);
 //            double [] xValueArray = plotReplicate.getSecondDerivativeMinutes(secondsPerCycle,NUMBACK);
@@ -843,9 +915,16 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 xValueArray = meltTemperatures.getSignal();
             }
             if(plotTTR){
-                int TTR = plotReplicate.getMidpointTTRIndex(amplitudeThreshold);
-                if (!isMidpoint){
+                int TTR = 0;
+                if (TTRMethod == INFLECTIONPOINTMETHOD){
                     TTR = plotReplicate.getInflectionPointTTRIndex(secondsPerCycle, 0, NUMBACK);
+                } else if (TTRMethod == MIDPOINTMETHOD){
+                    TTR = plotReplicate.getMidpointTTRIndex(amplitudeThreshold);
+                } else if (TTRMethod == CQVALUEMETHOD){
+                    TTR = (int)Math.round(plotReplicate.getCq());
+                    if (TTR < 0 || TTR > yValueArray.length -1){
+                        TTR = yValueArray.length - 1;
+                    }
                 }
                 if (isMelt){
                     TTR = plotReplicate.getPeakIndex();
@@ -905,8 +984,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         }
         if (isMelt){
             panel.setAxisLabels(MELTAXISLABELS);
-        } else {
+        } else if (TTRMethod != CQVALUEMETHOD) {
             panel.setAxisLabels(AXISLABELS);
+        } else {
+            panel.setAxisLabels(CYCLELABELS);
         }
         panel.removePlotToolBar();
 //        for (int j =)
@@ -986,7 +1067,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         myTextField = new javax.swing.JTextArea();
         cancelButton = new javax.swing.JButton();
         waitContinueButton = new javax.swing.JButton();
-        inflectionButton = new javax.swing.JRadioButton();
+        CqValueButton = new javax.swing.JRadioButton();
         midpointButton = new javax.swing.JRadioButton();
         secondsPerCycleField = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
@@ -1014,6 +1095,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         jLabel12 = new javax.swing.JLabel();
         jLabel13 = new javax.swing.JLabel();
         jLabel14 = new javax.swing.JLabel();
+        inflectionButton1 = new javax.swing.JRadioButton();
+        jLabel10 = new javax.swing.JLabel();
 
         jTextArea1.setColumns(20);
         jTextArea1.setRows(5);
@@ -1027,7 +1110,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         myTextField.setRows(5);
         jScrollPane1.setViewportView(myTextField);
 
-        getContentPane().add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 10, 660, 560));
+        getContentPane().add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 10, 660, 580));
 
         cancelButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         cancelButton.setText("Cancel");
@@ -1036,21 +1119,21 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 cancelButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(cancelButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 510, 176, -1));
+        getContentPane().add(cancelButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 540, 176, -1));
 
         waitContinueButton.setFont(new java.awt.Font("Tahoma", 0, 36)); // NOI18N
         waitContinueButton.setText("(Wait...)");
-        getContentPane().add(waitContinueButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 510, 176, -1));
+        getContentPane().add(waitContinueButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 540, 176, -1));
 
-        ttrMethodButtonGroup.add(inflectionButton);
-        inflectionButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        inflectionButton.setText("Inflection Point");
-        inflectionButton.addActionListener(new java.awt.event.ActionListener() {
+        ttrMethodButtonGroup.add(CqValueButton);
+        CqValueButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        CqValueButton.setText("Cq Value (qPCR)");
+        CqValueButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                inflectionButtonActionPerformed(evt);
+                CqValueButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(inflectionButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 160, 333, 34));
+        getContentPane().add(CqValueButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 190, 333, 34));
 
         ttrMethodButtonGroup.add(midpointButton);
         midpointButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -1060,7 +1143,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 midpointButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(midpointButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 90, 333, 34));
+        getContentPane().add(midpointButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 90, 333, 30));
 
         secondsPerCycleField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         secondsPerCycleField.setText("38");
@@ -1069,16 +1152,16 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 secondsPerCycleFieldActionPerformed(evt);
             }
         });
-        getContentPane().add(secondsPerCycleField, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 10, 174, -1));
+        getContentPane().add(secondsPerCycleField, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 10, 140, -1));
 
         jLabel2.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel2.setText("Seconds per cycle:");
-        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 222, -1));
+        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(170, 10, 160, -1));
 
         jLabel3.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel3.setText("Label TTR on Plot:");
-        getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 380, 150, 35));
+        getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 410, 150, 35));
 
         labelTTRButton.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
         labelTTRButton.setText("ON");
@@ -1087,7 +1170,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 labelTTRButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(labelTTRButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 380, 107, 35));
+        getContentPane().add(labelTTRButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 410, 107, 35));
 
         jTextField1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jTextField1.setText("4");
@@ -1096,16 +1179,16 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 jTextField1ActionPerformed(evt);
             }
         });
-        getContentPane().add(jTextField1, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 40, 174, -1));
+        getContentPane().add(jTextField1, new org.netbeans.lib.awtextra.AbsoluteConstraints(340, 40, 140, -1));
 
         jLabel5.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel5.setText("Plots Per Row:");
-        getContentPane().add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 40, 222, -1));
+        getContentPane().add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(170, 40, 160, -1));
 
         jLabel4.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
         jLabel4.setText("Automatically save tables/plots:");
-        getContentPane().add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 460, 270, 35));
+        getContentPane().add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 490, 270, 35));
 
         autoSaveButton.setText("OFF");
         autoSaveButton.addActionListener(new java.awt.event.ActionListener() {
@@ -1113,17 +1196,17 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 autoSaveButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(autoSaveButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 460, 107, 35));
+        getContentPane().add(autoSaveButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 490, 107, 35));
 
         jLabel6.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel6.setText("TTR Method:");
-        getContentPane().add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 80, 120, 30));
+        jLabel6.setText("Plot Parameters:");
+        getContentPane().add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 140, 30));
 
         jLabel8.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel8.setText("Y-Axis Labels:");
-        getContentPane().add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 200, 110, 30));
+        getContentPane().add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 110, 30));
 
         AxisButtonGroup.add(automateIndividuallyButton);
         automateIndividuallyButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -1134,7 +1217,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 automateIndividuallyButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(automateIndividuallyButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 230, 200, -1));
+        getContentPane().add(automateIndividuallyButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 260, 200, -1));
 
         AxisButtonGroup.add(fixedBoundsButton);
         fixedBoundsButton.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
@@ -1144,10 +1227,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 fixedBoundsButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(fixedBoundsButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 260, 260, -1));
-        getContentPane().add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 200, 480, 12));
-        getContentPane().add(jSeparator2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 370, 480, 12));
-        getContentPane().add(jSeparator3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 80, 480, 12));
+        getContentPane().add(fixedBoundsButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 290, 260, -1));
+        getContentPane().add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 230, 510, 12));
+        getContentPane().add(jSeparator2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 400, 510, 12));
+        getContentPane().add(jSeparator3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 80, 510, 12));
 
         minTextField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         minTextField.addActionListener(new java.awt.event.ActionListener() {
@@ -1155,25 +1238,25 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 minTextFieldActionPerformed(evt);
             }
         });
-        getContentPane().add(minTextField, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 300, 174, -1));
+        getContentPane().add(minTextField, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 330, 174, -1));
 
         maxTextField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        getContentPane().add(maxTextField, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 330, 174, -1));
+        getContentPane().add(maxTextField, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 360, 174, -1));
 
         jLabel1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel1.setText("MIN");
-        getContentPane().add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 300, 35, -1));
+        getContentPane().add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 330, 35, -1));
 
         jLabel7.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel7.setText("MAX");
-        getContentPane().add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(220, 330, -1, -1));
+        getContentPane().add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 360, -1, -1));
 
         jLabel9.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         jLabel9.setText("Amplitude Threshold:");
-        getContentPane().add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 130, -1, 31));
+        getContentPane().add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 120, -1, 20));
 
         amplitudeThresholdField.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         amplitudeThresholdField.setText("4000");
@@ -1182,11 +1265,11 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 amplitudeThresholdFieldActionPerformed(evt);
             }
         });
-        getContentPane().add(amplitudeThresholdField, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 130, 170, -1));
+        getContentPane().add(amplitudeThresholdField, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 120, 170, 20));
 
         jLabel11.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel11.setText("Automatically Order Plots Alphanumerically:");
-        getContentPane().add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 420, 350, 30));
+        getContentPane().add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 450, 350, 30));
 
         autoOrderButton.setText("ON");
         autoOrderButton.addActionListener(new java.awt.event.ActionListener() {
@@ -1194,19 +1277,34 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                 autoOrderButtonActionPerformed(evt);
             }
         });
-        getContentPane().add(autoOrderButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 420, 107, 35));
+        getContentPane().add(autoOrderButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 450, 107, 35));
 
         jLabel12.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
         jLabel12.setToolTipText("A difference in ampiltude between baseline and midpoint value smaller than this threshold will result in TTR being the maximum possible for each plot.");
-        getContentPane().add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 130, 27, 29));
+        getContentPane().add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 120, 20, 20));
 
         jLabel13.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
         jLabel13.setToolTipText("If set to OFF, the program will prompt you to load a csv table with the sample names in the order you wish them to be plotted. If set to ON, will automatically order the samples in alphanumerical order when plotting");
-        getContentPane().add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 430, 20, 20));
+        getContentPane().add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 460, 20, 20));
 
         jLabel14.setIcon(new javax.swing.ImageIcon(getClass().getResource("/ToolUI/icons/smallQuestionMark.png"))); // NOI18N
         jLabel14.setToolTipText("If set to ON, will automatically save TTR table, amplification plots, (Melt peaks), (melt curves) to same directory as input data ");
-        getContentPane().add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(470, 470, 20, 20));
+        getContentPane().add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 500, 20, 20));
+
+        ttrMethodButtonGroup.add(inflectionButton1);
+        inflectionButton1.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        inflectionButton1.setText("Inflection Point");
+        inflectionButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                inflectionButton1ActionPerformed(evt);
+            }
+        });
+        getContentPane().add(inflectionButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 150, 333, 34));
+
+        jLabel10.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
+        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel10.setText("TTR Method:");
+        getContentPane().add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 80, 120, 30));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -1270,10 +1368,10 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         // TODO add your handling code here:
     }//GEN-LAST:event_minTextFieldActionPerformed
 
-    private void inflectionButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_inflectionButtonActionPerformed
+    private void CqValueButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CqValueButtonActionPerformed
         // TODO add your handling code here:
         amplitudeThresholdField.setEditable(false);
-    }//GEN-LAST:event_inflectionButtonActionPerformed
+    }//GEN-LAST:event_CqValueButtonActionPerformed
 
     private void amplitudeThresholdFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_amplitudeThresholdFieldActionPerformed
         // TODO add your handling code here:
@@ -1287,12 +1385,17 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         }
     }//GEN-LAST:event_autoOrderButtonActionPerformed
 
+    private void inflectionButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_inflectionButton1ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_inflectionButton1ActionPerformed
+
     /**
      * @param args the command line arguments
      */
    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup AxisButtonGroup;
+    private javax.swing.JRadioButton CqValueButton;
     private javax.swing.JTextField amplitudeThresholdField;
     private javax.swing.JToggleButton autoOrderButton;
     private javax.swing.JToggleButton autoSaveButton;
@@ -1300,8 +1403,9 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
     private javax.swing.ButtonGroup buttonGroup2;
     private javax.swing.JButton cancelButton;
     private javax.swing.JRadioButton fixedBoundsButton;
-    private javax.swing.JRadioButton inflectionButton;
+    private javax.swing.JRadioButton inflectionButton1;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;

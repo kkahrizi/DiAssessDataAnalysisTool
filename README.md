@@ -85,3 +85,7 @@ Version 2.13 Updates:
 - Built functionality to allow for reordering of plots. To reorder plots, create a table (.csv) with one column, where each row is a sample
 as found in (...) - Quantification Summary_0.csv Thermocycler file, in the order desired. In the Thermocycler options window, turn the "automatically order plots" button 
 to the off position. The program will prompt you to select your .csv file, and will plot graphs in that order. 
+
+Version 2.14 Updates:
+- Built compatibility with unicode text files
+- Built ability to read Cq values as output by thermal cycler and use in place of TTR

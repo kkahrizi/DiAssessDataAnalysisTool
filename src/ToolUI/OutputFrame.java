@@ -310,10 +310,14 @@ public class OutputFrame extends javax.swing.JFrame {
                 continue;
             }
             StatLabelCombo comboToAdd = new StatLabelCombo(thisLabel);
-            comboToAdd.addValue(thisTime);
+            if (thisTime > 0){
+                comboToAdd.addValue(thisTime);
+            }
             for (int i = j+1; i < data.size(); i++) {
                 if (data.get(i).Label.equalsIgnoreCase(thisLabel)) {
-                    comboToAdd.addValue(data.get(i).TTR);
+                    if (data.get(i).TTR > 0 ){
+                        comboToAdd.addValue(data.get(i).TTR);
+                    }
                 }                
             }
             theseStatistics.add(comboToAdd);

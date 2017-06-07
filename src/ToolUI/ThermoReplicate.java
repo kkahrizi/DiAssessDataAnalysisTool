@@ -17,7 +17,9 @@ public class ThermoReplicate implements Comparable {
     public String sampleName;
     public double[] signal;
     public double TTR;
+    public double Cq;
     public final int LOCAL_MAXIMA_WINDOW = 4;
+    
     public ThermoReplicate(){
         wellCoordinate = null;
         sampleName = null;
@@ -57,6 +59,14 @@ public class ThermoReplicate implements Comparable {
             timeArray[i] = ((double) i * secondsPerCycle ) / 60;
         }
         return timeArray;
+    }
+    
+    public double[] getCycles(){
+        double[] cycleArray = new double[signal.length];
+        for (int i = 0; i < cycleArray.length; i++){
+            cycleArray[i] = ((double) i );
+        }
+        return cycleArray;
     }
     
     public double[] getSecondDerivativeMinutes(double secondsPerCycle, int numBack){
@@ -101,6 +111,14 @@ public class ThermoReplicate implements Comparable {
     
     public double[] getSignal(){
         return signal;
+    }
+    
+    public void setCq(double val){
+        Cq = val;
+    }
+    
+    public double getCq(){
+        return Cq;
     }
     
     public void setSignal(double[] rfuData){
