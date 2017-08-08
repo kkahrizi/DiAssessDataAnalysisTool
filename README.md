@@ -89,3 +89,6 @@ to the off position. The program will prompt you to select your .csv file, and w
 Version 2.14 Updates:
 - Built compatibility with unicode text files
 - Built ability to read Cq values as output by thermal cycler and use in place of TTR
+
+Version 2.15 Updates:
+- Added ability to customize which cycles compose the baseline for use with the midpoint TTR method in thermocycler data

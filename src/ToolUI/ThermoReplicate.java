@@ -198,11 +198,11 @@ public class ThermoReplicate implements Comparable {
         
     }
     
-    public double getMidpointTTR(double secondsPerCycle, int amplitudeThreshold){
+     public double getMidpointTTR(double secondsPerCycle, int amplitudeThreshold, int startAverage, int endAverage){
         double ampThres = (double) amplitudeThreshold;
         double defaultTTR = (signal.length-1)*secondsPerCycle/60.0;
-        int startCycle = 10;
-        int endCycle = 16;
+        int startCycle = startAverage;
+        int endCycle = endAverage;
         double baseValue = getBaseline(startCycle,endCycle);
         double maxValue = getMax();
         double halfWay = (baseValue + maxValue)/2;
@@ -220,11 +220,34 @@ public class ThermoReplicate implements Comparable {
         return TTR;
     }
     
-    public int getMidpointTTRIndex(int amplitudeThreshold) {
+    //Obsoleted
+//    public double getMidpointTTR(double secondsPerCycle, int amplitudeThreshold){
+//        double ampThres = (double) amplitudeThreshold;
+//        double defaultTTR = (signal.length-1)*secondsPerCycle/60.0;
+//        int startCycle = 10;
+//        int endCycle = 16;
+//        double baseValue = getBaseline(startCycle,endCycle);
+//        double maxValue = getMax();
+//        double halfWay = (baseValue + maxValue)/2;
+//        if (halfWay - baseValue < ampThres){
+//            TTR = defaultTTR;
+//            return defaultTTR;
+//        }
+//        for (int i = 0; i < signal.length; i++){
+//            if (signal[i] > halfWay){
+//                TTR = i*secondsPerCycle/60.0;
+//                return TTR;
+//            }
+//        }
+//        TTR =  defaultTTR;
+//        return TTR;
+//    }
+    
+    public int getMidpointTTRIndex(int amplitudeThreshold, int startAverage, int endAverage) {
         double ampThres = (double) amplitudeThreshold;
 
-        int startCycle = 10;
-        int endCycle = 16;
+        int startCycle = startAverage;
+        int endCycle = endAverage;
         double baseValue = getBaseline(startCycle, endCycle);
         double maxValue = getMax();
         double halfWay = (baseValue + maxValue)/2;
@@ -241,6 +264,30 @@ public class ThermoReplicate implements Comparable {
         
         return signal.length - 1;
     }
+    
+    
+    //Obsoleted
+//    public int getMidpointTTRIndex(int amplitudeThreshold) {
+//        double ampThres = (double) amplitudeThreshold;
+//
+//        int startCycle = 10;
+//        int endCycle = 16;
+//        double baseValue = getBaseline(startCycle, endCycle);
+//        double maxValue = getMax();
+//        double halfWay = (baseValue + maxValue)/2;
+//        if (halfWay - baseValue < ampThres){
+//            return signal.length - 1;
+//            
+//        }
+//        for (int i = 0; i < signal.length; i++){
+//            if (signal[i] > halfWay){
+//              
+//                return i;
+//            }
+//        }
+//        
+//        return signal.length - 1;
+//    }
         
     //Returns the average value of the signal array between 
     //[startCycle, endCycle)
