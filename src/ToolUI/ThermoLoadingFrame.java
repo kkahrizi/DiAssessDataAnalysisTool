@@ -97,8 +97,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         DiAssessDataAnalysisToolUI.applyFont(this, new Font("Tahoma", Font.PLAIN, 16));
         
         titleLegendButton.setSelected(false);
-        titleLegendButton.setEnabled(false);
-        titleLegendButton.setText("SOON");
+        titleLegendButton.setText("OFF");
         labelTTRButton.setSelected(true);
         midpointButton.setSelected(true);
         amplitudeThresholdField.setEditable(true);
@@ -211,7 +210,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
                     for (int i = 0; i < allCombos.size(); i++) {
 
                         boolean successful = makeAndSavePlots(allCombos.get(i), TTRMethod, amplitudeThreshold, secondsPerCycle,
-                                labelTTR, plotsPerRow, autoYAxis, minY_option, maxY_option, reOrder);
+                                labelTTR, plotsPerRow, autoYAxis, minY_option, maxY_option, reOrder, titleLegendButton.isSelected());
                         if (!successful) {
                             addText("Something went wrong. Ask Kamin to investigate");
                         } else {
@@ -397,7 +396,7 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 
     //
     public boolean makeAndSavePlots(SignalSampleCombo thisCombo, int TTRMethod, int amplitudeThreshold,
-            double secondsPerCycle, boolean labelTTR, int plotsPerRow, boolean autoYAxis, double minY, double maxY, boolean reOrder) {
+            double secondsPerCycle, boolean labelTTR, int plotsPerRow, boolean autoYAxis, double minY, double maxY, boolean reOrder, boolean reLabel) {
         ArrayList<TTRTuple> TTRData = new ArrayList<TTRTuple>();
         int OFFSET = -1; //Offset for empty spaces and "Cycle" column
         File signalFile = thisCombo.getSignal();
@@ -622,6 +621,12 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 
         }
 
+        //If user switched relabel button prompt for relabel and change names 
+        if (reLabel) {
+            ThermoRelabelFrame labelingFrame = new ThermoRelabelFrame(allData);
+            allData = labelingFrame.waitForInput();
+        }
+        
         for (int i = 0; i < allData.size(); i++) {
 
             ThermoSample thisSample = allData.get(i);
@@ -736,6 +741,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
         return true;
     }
 
+  
+    
     static BufferedImage deepCopy(BufferedImage bi) {
         ColorModel cm = bi.getColorModel();
         boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
@@ -1209,8 +1216,8 @@ public class ThermoLoadingFrame extends javax.swing.JFrame implements FileFilter
 
         jLabel3.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.TRAILING);
-        jLabel3.setText("Include Title/Legend:");
-        getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 490, 190, 35));
+        jLabel3.setText("Include Title/Change labels:");
+        getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 490, 250, 35));
 
         labelTTRButton.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
         labelTTRButton.setText("ON");
